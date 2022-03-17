@@ -26,7 +26,7 @@ export default class AuthController {
         undefined,
         new JsonResponseError("User not found")
       );
-    if (!user.checkPassword(form.cleanedData.password))
+    if (! await user.checkPassword(form.cleanedData.password))
       return jsonResponse(
         400,
         undefined,

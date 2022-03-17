@@ -36,7 +36,10 @@ export class UserEntity extends BaseEntity {
   }
 
   async checkPassword(candidate: string): Promise<boolean> {
-    return await bcrypt.compare(candidate, this.password)
+    console.log(candidate)
+    const result = await bcrypt.compare(candidate, this.password)
+    console.log(result)
+    return result;
   }
 
   async toDto(): Promise<UserDto> {
