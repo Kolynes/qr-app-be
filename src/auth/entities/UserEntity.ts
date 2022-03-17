@@ -1,13 +1,12 @@
-import { Entity, Column, BaseEntity, ObjectIdColumn } from "typeorm";
+import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDateColumn, DeleteDateColumn } from "typeorm";
 import bcrypt from "bcrypt";
-import { IIndexable } from "../../types";
 import UserDto from "../dtos/UserDto";
 
 @Entity()
 export class UserEntity extends BaseEntity {
 
   @ObjectIdColumn()
-  id!: number;
+  id!: string;
 
   @Column()
   firstName!: string;
@@ -21,6 +20,15 @@ export class UserEntity extends BaseEntity {
   @Column()
   password!: string;
 
+  @UpdateDateColumn()
+  updateDate?: Date;
+
+  @CreateDateColumn()
+  createDate!: Date;
+
+  @DeleteDateColumn()
+  deleteDate?: Date;
+
   async setPassword(newPassword: string) {
     let salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(newPassword, salt);
@@ -31,13 +39,7 @@ export class UserEntity extends BaseEntity {
     return await bcrypt.compare(candidate, this.password)
   }
 
-  set(data: IIndexable) {
-    this.firstName = data.firstName;
-    this.lastName = data.lastName;
-    this.email = data.email;
-  }
-
-  toDto() {
+  async toDto(): Promise<UserDto> {
     return new UserDto(this);
   }
 }

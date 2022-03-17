@@ -2,7 +2,7 @@ import { Application, Request, Response, Router } from "express";
 import { Type } from "../../types";
 import { RouteHandler, EHttpMethods, IController, RouteConfig } from "./types";
 
-export function Route(path: string, method: EHttpMethods): MethodDecorator {
+export function Route(path: string = "", method: EHttpMethods): MethodDecorator {
   return (target: any, property: string | symbol, descriptor: any) => {
     return {
       ...descriptor,
@@ -15,35 +15,35 @@ export function Route(path: string, method: EHttpMethods): MethodDecorator {
   }
 }
 
-export function Get(path: string): MethodDecorator {
+export function Get(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.get);
 }
 
-export function Post(path: string): MethodDecorator {
+export function Post(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.post);
 }
 
-export function Put(path: string): MethodDecorator {
+export function Put(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.put);
 }
 
-export function Delete(path: string): MethodDecorator {
+export function Delete(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.delete);
 }
 
-export function Connect(path: string): MethodDecorator {
+export function Connect(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.connect);
 }
 
-export function Options(path: string): MethodDecorator {
+export function Options(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.options);
 }
 
-export function Trace(path: string): MethodDecorator {
+export function Trace(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.trace);
 }
 
-export function Patch(path: string): MethodDecorator {
+export function Patch(path?: string): MethodDecorator {
   return Route(path, EHttpMethods.patch);
 }
 

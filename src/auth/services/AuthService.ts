@@ -1,11 +1,16 @@
-import { EServices, IIndexable } from "../../types";
+import { EServices, IIndexable, Type } from "../../types";
 import Service, { serviceClass } from "../../utils/services/Service";
 import { IAuthService } from "../types";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { readFileSync } from "fs";
+import { Request } from "express";
+import { ParamsDictionary } from "express-serve-static-core";
+import { ParsedQs } from "qs";
+import { BaseEntity } from "typeorm";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
+  
   private getkey(): [string | Buffer, jwt.Algorithm] {
     if(process.env.PRIVATE_KEY && process.env.KEY_ALGORITHM) 
       return [
@@ -42,5 +47,21 @@ class AuthService extends Service implements IAuthService {
     } catch(e) {
       return undefined;
     }
+  }
+
+  async getUser<T extends BaseEntity>(request: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>, EntityType: any): Promise<T | undefined> {
+    const token = this.extractToken(request);
+    if(!token) return undefined;
+    const data = await this.verifyToken(token);
+    if(!data) return undefined;
+    return (await EntityType.findOne(data.id)) as T;
+  }
+
+  extractToken(request: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>): string | undefined {
+    const authorization = request.headers.authorization;
+    if(!authorization) return undefined;
+    const [prefix, token] = authorization.split(" ");
+    if(!(prefix.toLowerCase() == "bearer" && token)) return undefined;
+    return token;
   }
 }
