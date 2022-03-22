@@ -48,24 +48,32 @@ export default class EmploymentController {
   @Delete("/:id")
   async deleteEmployment(request: Request): Promise<Responder> {
     const user = await this.authService.getUser<UserEntity>(request, UserEntity);
-    const employee = await UserEntity.findOne(request.params.id);
+    const employee = await UserEntity.findOne({
+      where: {
+        $and: [
+          { _id: request.params.id },
+          { deleteDate: undefined }
+        ]
+      }
+    });
     if (!employee)
       return jsonResponse(
         404,
         undefined,
-        new JsonResponseError("Employment not found")
+        new JsonResponseError("Employee not found")
       );
     const employment = await EmploymentEntity.findOne({ where: {
       $and: [
         { employeeId: employee.id },
         { employerId: user!.id },
+        { deleteDate: undefined }
       ]
     }});
     if(!employment)
       return jsonResponse(
         404,
         undefined,
-        new JsonResponseError("Employment not found")
+        new JsonResponseError("Employee not found")
       );
     await UserEntity.softRemove(employee);
     await EmploymentEntity.softRemove(employment);
