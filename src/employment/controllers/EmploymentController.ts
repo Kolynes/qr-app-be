@@ -1,5 +1,4 @@
 import { Request } from "express";
-import { ObjectID } from 'mongodb';
 import { UserEntity } from "../../auth/entities/UserEntity";
 import { SignupForm } from "../../auth/forms";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
