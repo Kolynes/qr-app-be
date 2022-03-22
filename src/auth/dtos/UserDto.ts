@@ -1,7 +1,8 @@
+import { ObjectID } from "typeorm";
 import { UserEntity } from "../entities/UserEntity";
 
 export default class UserDto {
-  id: string;
+  id: ObjectID;
   firstName: string;
   lastName: string;
   email: string;

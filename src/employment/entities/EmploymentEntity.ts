@@ -1,4 +1,4 @@
-import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, ObjectIdColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, DeleteDateColumn, Entity, ObjectID, ObjectIdColumn, UpdateDateColumn } from "typeorm";
 import EmploymentDto from "../dtos/EmploymentDto";
 import { UserEntity } from "../../auth/entities/UserEntity";
 
@@ -6,7 +6,7 @@ import { UserEntity } from "../../auth/entities/UserEntity";
 export class EmploymentEntity extends BaseEntity {
   
   @ObjectIdColumn()
-  id!: string;
+  id!: ObjectID;
 
   @Column()
   employerId!: string;

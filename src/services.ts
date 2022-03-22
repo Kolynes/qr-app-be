@@ -1,2 +1,2 @@
 import "./auth/services/AuthService";
-import "./qr/services/QRService";
+import "./inventory/services/QRService";

@@ -1,4 +1,4 @@
-import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDateColumn, DeleteDateColumn } from "typeorm";
+import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDateColumn, DeleteDateColumn, ObjectID } from "typeorm";
 import bcrypt from "bcrypt";
 import UserDto from "../dtos/UserDto";
 
@@ -6,7 +6,7 @@ import UserDto from "../dtos/UserDto";
 export class UserEntity extends BaseEntity {
 
   @ObjectIdColumn()
-  id!: string;
+  id!: ObjectID;
 
   @Column()
   firstName!: string;

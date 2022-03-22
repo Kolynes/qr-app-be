@@ -1,6 +1,7 @@
 import { UserEntity } from "../../auth/entities/UserEntity";
 import UserDto from "../../auth/dtos/UserDto";
 import { EmploymentEntity } from "../entities/EmploymentEntity";
+import { ObjectID } from "typeorm";
 
 export default class EmploymentDto {
   employee: UserDto;
@@ -8,7 +9,7 @@ export default class EmploymentDto {
   createDate: Date;
   updateDate?: Date;
   deleteDate?: Date;
-  id: string;
+  id: ObjectID;
 
   constructor(employee: UserEntity, employer: UserEntity, employment: EmploymentEntity) {
     this.employee = new UserDto(employee);

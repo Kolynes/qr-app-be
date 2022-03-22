@@ -28,7 +28,7 @@ export default class EmploymentController {
         );
       const newEmployment = UserEntity.create(form.cleanedData);
       await newEmployment.save();
-      await EmploymentEntity.create({ employeeId: newEmployment.id, employerId: user!.id }).save();
+      await EmploymentEntity.create({ employeeId: newEmployment.id.toString(), employerId: user!.id.toString() }).save();
       return jsonResponse(201);
     } catch (e) {
       if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
