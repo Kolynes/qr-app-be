@@ -15,7 +15,12 @@ export default class AuthController {
   @Post("/login")
   async login(request: Request): Promise<Responder> {
     const form = new LoginForm(request.body);
-    if (!form.validate()) return jsonResponse(400, form.errors);
+    if (!form.validate()) 
+      return jsonResponse(
+        400, 
+        undefined, 
+        new JsonResponseError("Invalid parameters", form.errors)
+      );
     const user = await UserEntity.findOne({
       email: form.cleanedData.email,
       deleteDate: undefined
@@ -47,7 +52,12 @@ export default class AuthController {
   async signUp(request: Request): Promise<Responder> {
     try {
       const form = new SignupForm(request.body);
-      if (!form.validate()) return jsonResponse(400, form.errors);
+      if (!form.validate()) 
+        return jsonResponse(
+          400, 
+          undefined, 
+          new JsonResponseError("Invalid parameters", form.errors)
+        );
       const user = UserEntity.create(form.cleanedData);
       await user.setPassword(form.cleanedData.password);
       await user.save();

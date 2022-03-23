@@ -1,3 +1,4 @@
+import { BaseEntity } from "typeorm";
 import { IIndexable } from "../../types";
 
 

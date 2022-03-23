@@ -19,7 +19,10 @@ export class FolderEntity extends BaseEntity {
   name!: string;
 
   @Column()
-  products!: ObjectID[];
+  userId!: string;
+
+  @Column()
+  products?: ObjectID[];
 
   @UpdateDateColumn()
   updateDate?: Date;

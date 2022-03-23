@@ -6,5 +6,5 @@ export enum EQRCodeType {
 }
 
 export interface IQRService extends Service {
-  createQRCode(id: string, type: EQRCodeType): Promise<string>;
+  createQRCode(id: string, ownerId: string, type: EQRCodeType): Promise<string>;
 }
