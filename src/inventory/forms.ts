@@ -1,16 +1,12 @@
 import Form, { rule } from "../utils/form";
-import { requiredRule } from "../utils/form/rules";
+import { rangeRule, requiredRule } from "../utils/form/rules";
 
-export class ProductForm extends Form {
-  @rule("geneticName")
-  checkGeneticName(geneticName: string) {
-    requiredRule(geneticName);
-    this.cleanedData.geneticName = geneticName.trim();
+export class ItemForm extends Form {
+  @rule("numberOfItems")
+  checkNumberOfItems(numberOfItems: number) {
+    rangeRule(numberOfItems, 1);
+    this.cleanedData.numberOfItems = numberOfItems; 
   }
-}
-
-export class ProductUpdateForm extends ProductForm {
-
 }
 
 export class FolderForm extends Form {

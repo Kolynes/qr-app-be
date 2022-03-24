@@ -1,7 +1,8 @@
 import { Application, Request } from "express";
 import { Responder } from "../responses";
 
-export type RouteHandler = (request: Request) => Promise<Responder>;
+export type RouteHandler = (request: Request, ...args: any[]) => Promise<Responder>;
+export type RouteHandlerDecorator = (wrapped: RouteHandler) => RouteHandler;
 
 export class RouteConfig {
   constructor(

@@ -1,26 +1,20 @@
 import { Request } from "express";
 import { EServices } from "../../types";
 import { Controller, Post } from "../../utils/controller";
+import { useForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { UserEntity } from "../entities/UserEntity";
 import { LoginForm, SignupForm } from "../forms";
-import { IAuthService } from "../types";
+import { EUserType, IAuthService } from "../types";
 
 @Controller()
 export default class AuthController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
-  @Post("/login")
-  async login(request: Request): Promise<Responder> {
-    const form = new LoginForm(request.body);
-    if (!form.validate()) 
-      return jsonResponse(
-        400, 
-        undefined, 
-        new JsonResponseError("Invalid parameters", form.errors)
-      );
+  @Post("/login", [useForm(LoginForm)])
+  async login(request: Request, form: LoginForm): Promise<Responder> {
     const user = await UserEntity.findOne({
       email: form.cleanedData.email,
       deleteDate: undefined
@@ -48,17 +42,11 @@ export default class AuthController {
     );
   }
 
-  @Post("/signup")
-  async signUp(request: Request): Promise<Responder> {
+  @Post("/signup", [useForm(SignupForm)])
+  async signUp(request: Request, form: SignupForm): Promise<Responder> {
     try {
-      const form = new SignupForm(request.body);
-      if (!form.validate()) 
-        return jsonResponse(
-          400, 
-          undefined, 
-          new JsonResponseError("Invalid parameters", form.errors)
-        );
       const user = UserEntity.create(form.cleanedData);
+      user.userType = EUserType.single;
       await user.setPassword(form.cleanedData.password);
       await user.save();
       return jsonResponse(

@@ -2,7 +2,7 @@ import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
   folder = "folder",
-  product = "product",
+  item = "item",
 }
 
 export interface IQRService extends Service {

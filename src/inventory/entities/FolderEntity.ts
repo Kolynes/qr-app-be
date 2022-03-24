@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { 
   BaseEntity, 
   Column, 
@@ -18,11 +19,8 @@ export class FolderEntity extends BaseEntity {
   @Column()
   name!: string;
 
-  @Column()
-  userId!: string;
-
-  @Column()
-  products?: ObjectID[];
+  @Column(() => ObjectId)
+  owner!: ObjectID;
 
   @UpdateDateColumn()
   updateDate?: Date;

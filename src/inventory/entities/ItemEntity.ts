@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { 
   BaseEntity, 
   Column, 
@@ -11,13 +12,16 @@ import {
 import { IIndexable } from "../../types";
 
 @Entity()
-export class ProductEntity extends BaseEntity {
+export class ItemEntity extends BaseEntity {
   
   @ObjectIdColumn()
   id!: ObjectID;
 
   @Column()
-  userId!: string;
+  owner!: string;
+
+  @Column()
+  folder!: string;
 
   @Column()
   geneticName!: string;

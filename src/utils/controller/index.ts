@@ -1,50 +1,54 @@
 import { Application, Request, Response, Router } from "express";
 import { Type } from "../../types";
-import { RouteHandler, EHttpMethods, IController, RouteConfig } from "./types";
+import { RouteHandler, EHttpMethods, IController, RouteConfig, RouteHandlerDecorator } from "./types";
 
-export function Route(path: string = "", method: EHttpMethods): MethodDecorator {
+export function Route(path: string = "", method: EHttpMethods, decorators?: RouteHandlerDecorator[]): MethodDecorator {
   return (target: any, property: string | symbol, descriptor: any) => {
+    let handler = target[property].bind(target);
+    if(decorators)
+      for(let d = decorators.length - 1; d >= 0; d--)
+        handler = decorators[d](handler);
     return {
       ...descriptor,
       value: new RouteConfig(
         method,
         path,
-        target[property] as RouteHandler
+        handler as RouteHandler
       )
     }
   }
 }
 
-export function Get(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.get);
+export function Get(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.get, decorators);
 }
 
-export function Post(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.post);
+export function Post(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.post, decorators);
 }
 
-export function Put(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.put);
+export function Put(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.put, decorators);
 }
 
-export function Delete(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.delete);
+export function Delete(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.delete, decorators);
 }
 
-export function Connect(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.connect);
+export function Connect(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.connect, decorators);
 }
 
-export function Options(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.options);
+export function Options(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.options, decorators);
 }
 
-export function Trace(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.trace);
+export function Trace(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.trace, decorators);
 }
 
-export function Patch(path?: string): MethodDecorator {
-  return Route(path, EHttpMethods.patch);
+export function Patch(path?: string, decorators?: RouteHandlerDecorator[]): MethodDecorator {
+  return Route(path, EHttpMethods.patch, decorators);
 }
 
 export function Controller(middleware: Type[] = []) {
@@ -68,7 +72,7 @@ export function Controller(middleware: Type[] = []) {
           router[method](
             path,
             async (req: Request, res: Response) => {
-              const responder = await func.bind(this)(req);
+              const responder = await func(req);
               responder(res);
             }
           );

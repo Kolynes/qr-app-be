@@ -11,3 +11,9 @@ export interface IAuthService extends Service {
   getUser<T extends BaseEntity>(request: Request, EntityType: any): Promise<T | undefined>;
   extractToken(request: Request): string | undefined;
 }
+
+export enum EUserType {
+  employer = "employer",
+  single = "single",
+  employee = "employee" 
+}

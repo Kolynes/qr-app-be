@@ -1,6 +1,8 @@
 import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDateColumn, DeleteDateColumn, ObjectID } from "typeorm";
 import bcrypt from "bcrypt";
 import UserDto from "../dtos/UserDto";
+import { EUserType } from "../types";
+import { ObjectId } from "mongodb";
 
 @Entity()
 export class UserEntity extends BaseEntity {
@@ -18,6 +20,12 @@ export class UserEntity extends BaseEntity {
   email!: string;
 
   @Column()
+  userType!: EUserType;
+
+  @Column()
+  employer!: string;
+
+  @Column()
   password!: string;
 
   @UpdateDateColumn()
@@ -32,13 +40,10 @@ export class UserEntity extends BaseEntity {
   async setPassword(newPassword: string) {
     let salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(newPassword, salt);
-    console.log(this.password);
   }
 
   async checkPassword(candidate: string): Promise<boolean> {
-    console.log(candidate)
     const result = await bcrypt.compare(candidate, this.password)
-    console.log(result)
     return result;
   }
 
