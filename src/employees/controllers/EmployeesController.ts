@@ -49,7 +49,7 @@ export default class EmploymentController {
       where: {
         $and: [
           { _id: ObjectId(request.params.id) },
-          { employer: user.id },
+          { employer: user.id.toString() },
           { deleteDate: undefined }
         ]
       }
@@ -83,7 +83,6 @@ export default class EmploymentController {
         ]
       }
     })).map(async e => await e.toDto());
-    console.log(user)
 
     const [data, numberOfPages, nextPage, previousPage] = paginate(await Promise.all(employees), page, size);
 
