@@ -1,7 +1,6 @@
 import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
-  folder = "folder",
   grain = "grain",
   allInOne = "all in one",
   genetic = "genetic",

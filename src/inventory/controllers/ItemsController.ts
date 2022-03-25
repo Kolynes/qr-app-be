@@ -87,14 +87,6 @@ export default class ItemsController {
       undefined,
       new JsonResponseError("Item not found.")
     );
-    if (item.type == EQRCodeType.folder) {
-      const subItems = await ItemEntity.find({
-        where: [
-          { folder: item.id.toString() }
-        ]
-      });
-      subItems.forEach(subItem => subItem.softRemove());
-    }
     await item.softRemove();
     return jsonResponse(200);
   }

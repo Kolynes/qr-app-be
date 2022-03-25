@@ -3,25 +3,81 @@ import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
-import { Controller, Delete, Put } from "../../utils/controller";
+import { Controller, Delete, Get, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
+import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
+import { FolderEntity } from "../entities/FolderEntity";
 import { ItemEntity } from "../entities/ItemEntity";
-import { FolderForm } from "../forms";
+import { FolderItemsForm, FolderForm } from "../forms";
 
 @Controller([AuthMiddleware])
 export default class FoldersController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
-  @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderForm)])
-  async addItems(request: Request, idForm: ObjectIDForm, folderForm: FolderForm): Promise<Responder> {
+  @Post("", [useForm(FolderForm)])
+  async createFolder(request: Request, form: FolderForm): Promise<Responder> {
+    const owner = await this.authService.getOwnerId(request);
+    const { name } = form.cleanedData;
+    const folder = FolderEntity.create({ name, owner });
+    await folder.save();
+    return jsonResponse(201, await folder.toDto())
+  }
+
+  @Get()
+  async getFolders(request: Request): Promise<Responder> {
+    const owner = await this.authService.getOwnerId(request);
+    const query = request.query.query;
+    const page = Math.abs(parseInt(request.query.page as string)) || 1;
+    const size = parseInt(request.query.size as string) || 100;
+    const folders = await FolderEntity.find({
+      where: {
+        $and: [
+          { name: new RegExp(query as string || ".*") },
+          { owner },
+          { deleteDate: undefined },
+        ],
+      }
+    })
+
+    const [data, numberOfPages, nextPage, previousPage] = paginate(folders, page, size);
+    return jsonResponse(
+      200,
+      data,
+      undefined,
+      numberOfPages,
+      nextPage,
+      previousPage
+    );
+  }
+
+  @Get("/:id", [useParamsForm(ObjectIDForm)])
+  async getFolder(request: Request, idForm: ObjectIDForm): Promise<Responder> {
     const owner = await this.authService.getOwnerId(request);
     const { id } = idForm.cleanedData;
-    const { items } = folderForm.cleanedData;
-    const folder = await ItemEntity.findOne({
-      where: { _id: id, owner}
+    const folder = await FolderEntity.findOne({
+      where: { _id: id, owner }
+    });
+    if(!folder) return jsonResponse(
+      404, 
+      undefined, 
+      new JsonResponseError("Folder not found")
+    );
+    return jsonResponse(
+      200,
+      await folder.toDto()
+    );
+  }
+
+  @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
+  async addItems(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
+    const owner = await this.authService.getOwnerId(request);
+    const { id } = idForm.cleanedData;
+    const { items } = folderItemsForm.cleanedData;
+    const folder = await FolderEntity.findOne({
+      where: { _id: id, owner }
     });
     if(!folder) return jsonResponse(
       404, 
@@ -42,7 +98,7 @@ export default class FoldersController {
         item.save();
       }
     }
-    return jsonResponse(200)
+    return jsonResponse(200);
   }
 
   @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderForm)])
@@ -50,8 +106,8 @@ export default class FoldersController {
     const owner = await this.authService.getOwnerId(request);
     const { id } = idForm.cleanedData;
     const { items } = folderForm.cleanedData;
-    const folder = await ItemEntity.findOne({
-      where: { _id: id, owner}
+    const folder = await FolderEntity.findOne({
+      where: { _id: id, owner }
     });
     if(!folder) return jsonResponse(
       404, 
@@ -72,6 +128,6 @@ export default class FoldersController {
         item.save();
       }
     }
-    return jsonResponse(200)
+    return jsonResponse(200);
   }
 }
