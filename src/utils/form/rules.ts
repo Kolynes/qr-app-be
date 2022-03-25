@@ -29,3 +29,8 @@ export function rangeRule(value: number, min: number = -Infinity, max: number = 
   }
   else throw new ValidationError("this field is required");
 }
+
+export function existsInRule<T>(value: T, array: T[]) {
+  const index = array.findIndex(e => e == value);
+  if(index == -1) throw new ValidationError("this field is invalid");
+}

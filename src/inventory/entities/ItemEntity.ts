@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import { 
   BaseEntity, 
   Column, 
@@ -9,7 +8,7 @@ import {
   ObjectIdColumn, 
   UpdateDateColumn 
 } from "typeorm";
-import { IIndexable } from "../../types";
+import { EQRCodeType } from "../types";
 
 @Entity()
 export class ItemEntity extends BaseEntity {
@@ -21,43 +20,13 @@ export class ItemEntity extends BaseEntity {
   owner!: string;
 
   @Column()
-  folder!: string;
+  type!: EQRCodeType;
 
   @Column()
-  geneticName!: string;
+  folder?: string;
 
   @Column()
-  history?: string;
-
-  @Column()
-  tags?: string[];
-
-  @Column()
-  cooked?: number;
-
-  @Column()
-  unitOfMeasure?: string;
-
-  @Column()
-  sterilizationDevice?: string;
-
-  @Column()
-  comments?: string;
-
-  @Column()
-  minLevel?: string;
-
-  @Column()
-  waterContent?: string;
-
-  @Column()
-  ingredientsByWeight?: IIndexable<number>;
-
-  @Column()
-  parent?: string;
-
-  @Column()
-  inventoryUsed?: string[];
+  totalWeight!: number;
 
   @UpdateDateColumn()
   updateDate?: Date;
@@ -69,3 +38,39 @@ export class ItemEntity extends BaseEntity {
   deleteDate?: Date;
   
 }
+
+  // @Column()
+  // geneticName!: string;
+
+  // @Column()
+  // history?: string;
+
+  // @Column()
+  // tags?: string[];
+
+  // @Column()
+  // cooked?: number;
+
+  // @Column()
+  // unitOfMeasure?: string;
+
+  // @Column()
+  // sterilizationDevice?: string;
+
+  // @Column()
+  // comments?: string;
+
+  // @Column()
+  // minLevel?: string;
+
+  // @Column()
+  // waterContent?: string;
+
+  // @Column()
+  // ingredientsByWeight?: IIndexable<number>;
+
+  // @Column()
+  // parent?: string;
+
+  // @Column()
+  // inventoryUsed?: string[];

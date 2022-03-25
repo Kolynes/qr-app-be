@@ -2,7 +2,10 @@ import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
   folder = "folder",
-  item = "item",
+  grain = "grain",
+  allInOne = "all in one",
+  genetic = "genetic",
+  substrate = "substrate"
 }
 
 export interface IQRService extends Service {

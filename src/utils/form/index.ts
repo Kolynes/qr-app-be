@@ -74,3 +74,33 @@ export function useForm(FormClass: { new(data: IIndexable) : Form }): RouteHandl
     }
   }
 }
+
+export function useQueryForm(FormClass: { new(data: IIndexable) : Form }): RouteHandlerDecorator {
+  return (wrapped: RouteHandler) => {
+    return async (request: Request, ...args: any[]) => {
+      const form = new FormClass(request.query);
+      if (!form.validate()) return jsonResponse(
+        400, 
+        undefined,
+        new JsonResponseError("Invalid parameters", form.errors)
+      )
+      args.push(form);
+      return await wrapped(request, ...args);
+    }
+  }
+}
+
+export function useParamsForm(FormClass: { new(data: IIndexable) : Form }): RouteHandlerDecorator {
+  return (wrapped: RouteHandler) => {
+    return async (request: Request, ...args: any[]) => {
+      const form = new FormClass(request.params);
+      if (!form.validate()) return jsonResponse(
+        400, 
+        undefined,
+        new JsonResponseError("Invalid parameters", form.errors)
+      )
+      args.push(form);
+      return await wrapped(request, ...args);
+    }
+  }
+}

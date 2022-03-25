@@ -1,18 +1,38 @@
-import Form, { rule } from "../utils/form";
-import { rangeRule, requiredRule } from "../utils/form/rules";
+import { ObjectId } from "mongodb";
+import Form, { rule, ValidationError } from "../utils/form";
+import { existsInRule, rangeRule, requiredLengthRule } from "../utils/form/rules";
+import { QRCodeTypes } from "./constants";
+import { EQRCodeType } from "./types";
 
 export class ItemForm extends Form {
   @rule("numberOfItems")
   checkNumberOfItems(numberOfItems: number) {
     rangeRule(numberOfItems, 1);
-    this.cleanedData.numberOfItems = numberOfItems; 
+  }
+
+  @rule("type")
+  checkType(type: EQRCodeType) {
+    existsInRule(type, QRCodeTypes);
+  }
+
+  @rule("totalWeight")
+  checkWeight(totalWeight?: number) {
+    if(totalWeight) rangeRule(totalWeight, 0);
   }
 }
 
 export class FolderForm extends Form {
-  @rule("name")
-  checkName(name: string) {
-    requiredRule(name);
-    this.cleanedData.name = name.trim();
+  @rule("items")
+  checkItems(items: string[]) {
+    const ids = [];
+    for(let item of items) {
+      requiredLengthRule(item, 24, 24);
+      try {
+        ids.push(ObjectId(item));
+      } catch(e) {
+        throw new ValidationError((e as Object).toString());
+      }
+    }
+    this.cleanedData.items = ids;
   }
 }

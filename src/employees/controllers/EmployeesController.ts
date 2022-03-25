@@ -4,9 +4,10 @@ import { UserEntity } from "../../auth/entities/UserEntity";
 import { SignupForm } from "../../auth/forms";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { EUserType, IAuthService } from "../../auth/types";
+import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
 import { Controller, Delete, Get, Post } from "../../utils/controller";
-import { useForm } from "../../utils/form";
+import { useForm, useParamsForm } from "../../utils/form";
 import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
@@ -19,7 +20,7 @@ export default class EmploymentController {
   @Post("", [useForm(SignupForm)])
   async createEmployee(request: Request, form: SignupForm): Promise<Responder> {
     try {
-      const user = (await this.authService.getUser<UserEntity>(request, UserEntity))!;
+      const user = (await this.authService.getUser(request))!;
       const newEmployee = UserEntity.create(form.cleanedData);
       newEmployee.userType = EUserType.employee;
       newEmployee.employer = user.id.toString();
@@ -42,13 +43,14 @@ export default class EmploymentController {
     }
   }
 
-  @Delete("/:id")
-  async deleteEmployee(request: Request): Promise<Responder> {
-    const user = (await this.authService.getUser<UserEntity>(request, UserEntity))!;
+  @Delete("/:id", [useParamsForm(ObjectIDForm)])
+  async deleteEmployee(request: Request, form: ObjectIDForm): Promise<Responder> {
+    const user = (await this.authService.getUser(request))!;
+    const { id } = form.cleanedData;
     const employee = await UserEntity.findOne({
       where: {
         $and: [
-          { _id: ObjectId(request.params.id) },
+          { _id: id },
           { employer: user.id.toString() },
           { deleteDate: undefined }
         ]
@@ -66,7 +68,7 @@ export default class EmploymentController {
 
   @Get()
   async getEmployees(request: Request): Promise<Responder> {
-    const user = (await this.authService.getUser<UserEntity>(request, UserEntity))!;
+    const user = (await this.authService.getUser(request))!;
     const query = request.query.query || "";
     const page = Math.abs(parseInt(request.query.page as string)) || 1;
     const size = parseInt(request.query.size as string) || 100;
