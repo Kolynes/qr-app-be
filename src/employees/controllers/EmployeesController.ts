@@ -73,7 +73,7 @@ export default class EmploymentController {
     const employees = (await UserEntity.find({
       where: {
         $and: [
-          { employer: user.id },
+          { employer: user.id.toString() },
           { deleteDate: undefined }
         ],
         $or: [
