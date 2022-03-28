@@ -21,6 +21,18 @@ export class ItemForm extends Form {
   }
 }
 
+export class ItemUpdateForm extends Form {
+  blacklist: string[] = [
+    "id",
+    "owner",
+    "type",
+    "folder",
+    "updateDate",
+    "createDate",
+    "deleteDate",
+  ];
+}
+
 export class FolderItemsForm extends Form {
   @rule("items")
   checkItems(items: string[]) {

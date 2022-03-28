@@ -9,8 +9,6 @@ import EmploymentController from "./employees/controllers/EmployeesController";
 import ItemsController from "./inventory/controllers/ItemsController";
 import QRController from "./inventory/controllers/QRController";
 import FoldersController from "./inventory/controllers/FoldersController";
-// import ProductController from "./qr/controllers/QRController";
-// import FolderController from "./qr/controllers/FolderController";
 
 require("dotenv").config()
 

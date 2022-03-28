@@ -5,18 +5,22 @@ import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { EUserType, IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
-import { Controller, Delete, Get } from "../../utils/controller";
-import { useParamsForm } from "../../utils/form";
+import { Controller, Delete, Get, Patch } from "../../utils/controller";
+import { useForm, useParamsForm } from "../../utils/form";
 import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { ItemEntity } from "../entities/ItemEntity";
-import { EQRCodeType } from "../types";
+import { ItemUpdateForm } from "../forms";
+import { EQRCodeType, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
 export default class ItemsController {
   @service(EServices.auth)
   private authService!: IAuthService;
+
+  @service(EServices.qrcode)
+  private qrCodeService!: IQRService;
 
   @Get()
   async getItems(request: Request): Promise<Responder> {
@@ -35,6 +39,7 @@ export default class ItemsController {
     })
 
     const [data, numberOfPages, nextPage, previousPage] = paginate(items, page, size);
+    for(let d of data) d.qrCode = await this.qrCodeService.createQRCode(d.id, d.owner, d.type);
     return jsonResponse(
       200,
       data,
@@ -63,9 +68,10 @@ export default class ItemsController {
       undefined, 
       new JsonResponseError("Item not found")
     );
+    var qrCode = await this.qrCodeService.createQRCode(id, owner!, item.type)
     return jsonResponse(
       200,
-      item
+      { item, qrCode }
     );
   }
 
@@ -91,35 +97,30 @@ export default class ItemsController {
     return jsonResponse(200);
   }
 
-  // @Patch("/:id")
-  // async updateItem(request: Request): Promise<Responder> {
-  //   const user = await this.authService.getUser<UserEntity>(request, UserEntity);
-  //   const product = await QREntity.findOne({
-  //     where: {
-  //       $and: [
-  //         { _id: ObjectId(request.params.id) },
-  //         { userId: user!.id.toString() },
-  //         { deleteDate: undefined },
-  //       ]
-  //     }
-  //   });
-  //   if(!product) return jsonResponse(
-  //     404,
-  //     undefined,
-  //     new JsonResponseError("Product not found.")
-  //   );
-  //   const form = new ProductUpdateForm({ ...product, ...request.body });
-  //   if(!form.validate()) return jsonResponse(
-  //     400,
-  //     undefined,
-  //     new JsonResponseError("Invalid parameters", form.errors)
-  //   );
-  //   Object.assign(product, form.cleanedData);
-  //   await product.save();
-  //   return jsonResponse(
-  //     200,
-  //     product
-  //   );
-  // }
+  @Patch("/:id", [useParamsForm(ObjectIDForm), useForm(ItemUpdateForm)])
+  async updateItem(request: Request, idForm: ObjectIDForm, itemUpdateForm: ItemUpdateForm): Promise<Responder> {
+    const owner = await this.authService.getOwnerId(request);
+    const { id } = idForm.cleanedData;
+    const item = await ItemEntity.findOne({
+      where: {
+        $and: [
+          { _id: id },
+          { owner },
+          { deleteDate: undefined },
+        ]
+      }
+    });
+    if(!item) return jsonResponse(
+      404,
+      undefined,
+      new JsonResponseError("item not found.")
+    );
+    Object.assign(item, itemUpdateForm.cleanedData);
+    await item.save();
+    return jsonResponse(
+      200,
+      item
+    );
+  }
 
 }

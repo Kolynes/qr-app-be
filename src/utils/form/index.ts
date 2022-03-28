@@ -7,7 +7,7 @@ import { jsonResponse, JsonResponseError } from "../responses";
 
 export function rule(item: string): MethodDecorator {
   return (target: any, propertyKey: string | symbol, descriptor) => {
-    Object.defineProperty(target, `Rule${propertyKey as String}`, { value: { item, function: target[propertyKey]} })
+    Object.defineProperty(target, `Rule${propertyKey as String}`, { value: { item, function: target[propertyKey] } })
   }
 }
 
@@ -21,9 +21,10 @@ export class ValidationError extends Error {
 
 export default abstract class Form {
 
-  errors: IIndexable<string[]> = {};
+  readonly errors: IIndexable<string[]> = {};
   private rules: IIndexable<Function[]> = {};
   readonly cleanedData: IIndexable<any> = {};
+  readonly blacklist: string[] = [];
 
   constructor(
     private readonly data: IIndexable<any>
@@ -32,40 +33,47 @@ export default abstract class Form {
     let descriptors = Object.getOwnPropertyDescriptors(this.constructor.prototype);
     for (var prop in descriptors) {
       if (prop.startsWith("Rule")) {
-        if(this.rules[descriptors[prop].value.item] === undefined)
+        if (this.rules[descriptors[prop].value.item] === undefined)
           this.rules[descriptors[prop].value.item] = [];
-          this.rules[descriptors[prop].value.item].push(descriptors[prop].value.function.bind(this))
+        this.rules[descriptors[prop].value.item].push(descriptors[prop].value.function.bind(this))
       }
     }
   }
 
   validate(): boolean {
     let result = true;
-    for(let item in this.rules)
-      for(let rule in this.rules[item]) {
-        let ruleResult = false;
+    for (let blacklistKey of this.blacklist)
+      for (let key in this.data)
+        if (blacklistKey === key) {
+          if (this.errors[key] === undefined)
+            this.errors[key] = [];
+          this.errors[key].push("This field is not accepted");
+          result = result && false;
+        }
+    for (let item in this.rules)
+      for (let rule in this.rules[item]) {
         try {
           this.rules[item][rule](this.data[item]);
-          ruleResult = true;
-        } catch(e) {
-          if(!(e as ValidationError).error)
+          result = result && true;
+        } catch (e) {
+          if (!(e as ValidationError).error)
             throw e;
-          else if(this.errors[item] === undefined)
+          else if (this.errors[item] === undefined)
             this.errors[item] = [];
           this.errors[item].push((e as ValidationError).error);
+          result = result && false;
         }
-        result = result && ruleResult === true
       }
     return result;
   }
 }
 
-export function useForm(FormClass: { new(data: IIndexable) : Form }): RouteHandlerDecorator {
+export function useForm(FormClass: { new(data: IIndexable): Form }): RouteHandlerDecorator {
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.body);
       if (!form.validate()) return jsonResponse(
-        400, 
+        400,
         undefined,
         new JsonResponseError("Invalid parameters", form.errors)
       )
@@ -75,12 +83,12 @@ export function useForm(FormClass: { new(data: IIndexable) : Form }): RouteHandl
   }
 }
 
-export function useQueryForm(FormClass: { new(data: IIndexable) : Form }): RouteHandlerDecorator {
+export function useQueryForm(FormClass: { new(data: IIndexable): Form }): RouteHandlerDecorator {
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.query);
       if (!form.validate()) return jsonResponse(
-        400, 
+        400,
         undefined,
         new JsonResponseError("Invalid parameters", form.errors)
       )
@@ -90,12 +98,12 @@ export function useQueryForm(FormClass: { new(data: IIndexable) : Form }): Route
   }
 }
 
-export function useParamsForm(FormClass: { new(data: IIndexable) : Form }): RouteHandlerDecorator {
+export function useParamsForm(FormClass: { new(data: IIndexable): Form }): RouteHandlerDecorator {
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.params);
       if (!form.validate()) return jsonResponse(
-        400, 
+        400,
         undefined,
         new JsonResponseError("Invalid parameters", form.errors)
       )
