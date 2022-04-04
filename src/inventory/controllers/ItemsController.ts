@@ -1,8 +1,6 @@
 import { Request } from "express";
-import { ObjectId } from "mongodb";
-import { UserEntity } from "../../auth/entities/UserEntity";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
-import { EUserType, IAuthService } from "../../auth/types";
+import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
 import { Controller, Delete, Get, Patch } from "../../utils/controller";
@@ -12,7 +10,7 @@ import { jsonResponse, JsonResponseError, Responder } from "../../utils/response
 import { service } from "../../utils/services/ServiceProvider";
 import { ItemEntity } from "../entities/ItemEntity";
 import { ItemUpdateForm } from "../forms";
-import { EQRCodeType, IQRService } from "../types";
+import { IQRService } from "../types";
 
 @Controller([AuthMiddleware])
 export default class ItemsController {

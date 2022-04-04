@@ -1,9 +1,9 @@
 import { ValidationError } from ".";
 
 export function emailRule(email: string) {
-  if (email && !/^[a-zA-Z0-9\-_]{3,}@[a-zA-Z0-9\-_]{3,}(\.[a-zA-Z0-9]{2,}){1,}$/.test(email))
+  if (email && !/^[a-zA-Z0-9\-_]{3,}@[a-zA-Z0-9\-_]{3,}(\.[a-zA-Z0-9]{2,}){1,}$/.test(email.trim()))
     throw new ValidationError("invalid email");
-  else if (!email) throw new ValidationError("this field is required");
+  else if (!email.trim()) throw new ValidationError("this field is required");
 }
 
 export function requiredRule(value?: string) {

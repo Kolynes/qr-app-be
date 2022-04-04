@@ -1,5 +1,5 @@
-import Form, { rule } from "../utils/form";
-import { emailRule, requiredRule } from "../utils/form/rules";
+import Form, { rule, ValidationError } from "../utils/form";
+import { emailRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
 export class LoginForm extends Form {
   @rule("email")
@@ -11,7 +11,7 @@ export class LoginForm extends Form {
 
   @rule("password")
   checkPassword(password: string) {
-    requiredRule(password);
+    requiredLengthRule(password, 5);
   }
 }
 
@@ -38,5 +38,37 @@ export class SignupForm extends Form {
   @rule("password")
   checkPassword(password: string) {
     requiredRule(password);
+    this.cleanedData.password = password.trim();
   }
 }
+
+export class RecoverAccountForm extends Form {
+  @rule("email")
+  checkEmail(email: string) {
+    emailRule(email);
+    this.cleanedData.email = email.trim();
+  }
+}
+
+export class ResetPasswordForm extends RecoverAccountForm {
+  @rule("code")
+  checkCode(code: string) {
+    requiredLengthRule(code, 6, 6);
+    this.cleanedData.code = code.trim();
+  }
+
+  @rule("newPassword")
+  checkNewPassword(newPassword: string) {
+    requiredLengthRule(newPassword, 5);
+    this.cleanedData.newPassword = newPassword.trim();
+  }
+
+  @rule("confirmPassword")
+  checkConfirmPassword(confirmPassword: string) {
+    requiredLengthRule(confirmPassword, 5);
+    if(confirmPassword.trim() != this.cleanedData.newPassword) 
+      throw new ValidationError("The passwords do not match")
+    this.cleanedData.confirmPassword = confirmPassword.trim();
+  }
+}
+
