@@ -4,7 +4,7 @@ import { IIndexable } from "../../types";
 
 export type Responder = (res: Response) => void;
 
-export function jsonResponse(
+export function jsonResponse(payload: {
   status: number, 
   data?: any, 
   error?: JsonResponseError, 
@@ -12,19 +12,13 @@ export function jsonResponse(
   nextPage?: number,
   previousPage?: number,
   headers?: OutgoingHttpHeaders
-): Responder {
+}): Responder {
+  const {headers, ...payloadWithOutHeader} = payload;
   return (res: Response) => {
     if(headers)
       for(let h in headers)
         res.setHeader(h, (headers[h] as string) || "");
-    res.status(status).json({
-      status,
-      data,
-      error,
-      numberOfPages,
-      nextPage,
-      previousPage
-    });
+    res.status(payload.status).json(payloadWithOutHeader);
   }
 }
 

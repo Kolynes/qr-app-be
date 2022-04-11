@@ -1,7 +1,6 @@
 import { Request } from "express";
-import { UserEntity } from "../../auth/entities/UserEntity";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
-import { EUserType, IAuthService } from "../../auth/types";
+import { IAuthService } from "../../auth/types";
 import { EServices } from "../../types";
 import { Controller, Post } from "../../utils/controller";
 import { useForm } from "../../utils/form";
@@ -37,9 +36,9 @@ export default class QRController {
       );
     }
     
-    return jsonResponse(
-      201,
-      qrCodes
-    );
+    return jsonResponse({
+      status: 201,
+      data: qrCodes
+    });
   }
 }

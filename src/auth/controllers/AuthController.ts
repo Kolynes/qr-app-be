@@ -26,26 +26,20 @@ export default class AuthController {
       deleteDate: undefined
     });
     if (!user)
-      return jsonResponse(
-        404,
-        undefined,
-        new JsonResponseError("User not found")
-      );
+      return jsonResponse({
+        status: 404,
+        error: new JsonResponseError("User not found")
+      });
     if (! await user.checkPassword(form.cleanedData.password))
-      return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Invalid credentials")
-      );
-    return jsonResponse(
-      200,
-      await user.toDto(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      await this.authService.generateTokenHeader({ id: user.id })
-    );
+      return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Invalid credentials")
+      });
+    return jsonResponse({
+      status: 200,
+      data: await user.toDto(),
+      headers: await this.authService.generateTokenHeader({ id: user.id })
+    });
   }
 
   @Post("/signup", [useForm(SignupForm)])
@@ -55,27 +49,21 @@ export default class AuthController {
       user.userType = EUserType.single;
       await user.setPassword(form.cleanedData.password);
       await user.save();
-      return jsonResponse(
-        201,
-        await user.toDto(),
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        await this.authService.generateTokenHeader({ id: user.id })
-      );
+      return jsonResponse({
+        status: 201,
+        data: await user.toDto(),
+        headers: await this.authService.generateTokenHeader({ id: user.id })
+      });
     } catch (e) {
       if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
-        return jsonResponse(
-          400,
-          undefined,
-          new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
-        );
-      return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Failed to create user")
-      );
+        return jsonResponse({
+          status: 400,
+          error: new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
+        });
+      return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Failed to create user")
+      });
     }
   }
 
@@ -83,47 +71,39 @@ export default class AuthController {
   async recoverAccountForm(request: Request, form: RecoverAccountForm): Promise<Responder> {
     const { email } = form.cleanedData;
     const user = await UserEntity.findOne({ email });
-    if(!user) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("This email does not belong to any account.")
-    );
+    if(!user) return jsonResponse({
+      status: 404, 
+      error: new JsonResponseError("This email does not belong to any account.")
+    });
     let verificationEntity = await VerificationEntity.findOne({ userId: user.id.toString() });
     if(!verificationEntity) verificationEntity = VerificationEntity.create({ 
       userId: user.id.toString(), 
       code: CodeGenerator.generateCode(6) 
     });
     await verificationEntity.save();
-    this.mailService.sendMail(EEmailTemplate.passwordRecoveryCode, { code: verificationEntity.code }, email);
-    return jsonResponse(201);
+    this.mailService.sendMail(EEmailTemplate.passwordRecoveryCode, { code: verificationEntity.code }, "qr-app", email);
+    return jsonResponse({status: 201});
   }
 
   @Post("/reset_password", [useForm(ResetPasswordForm)])
   async resetPassword(request: Request, form: ResetPasswordForm): Promise<Responder> {
     const { code, email, newPassword } = form.cleanedData;
     const user = await UserEntity.findOne({ email });
-    if(!user) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("This email does not belong to any account.")
-    );
+    if(!user) return jsonResponse({
+      status: 404, 
+      error: new JsonResponseError("This email does not belong to any account.")
+    });
     const verificationEntity = await VerificationEntity.findOne({ code, userId: user.id.toString() });
-    if(!verificationEntity) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("This code is invalid.")
-    );
+    if(!verificationEntity) return jsonResponse({
+      status: 404, 
+      error: new JsonResponseError("This code is invalid.")
+    });
     user.setPassword(newPassword);
     await user.save();
     await VerificationEntity.delete(verificationEntity);
-    return jsonResponse(
-      200,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      await this.authService.generateTokenHeader({ id: user.id })
-    );
+    return jsonResponse({
+      status: 200,
+      headers: await this.authService.generateTokenHeader({ id: user.id })
+    });
   }
 } 

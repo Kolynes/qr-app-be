@@ -38,14 +38,13 @@ export default class ItemsController {
 
     const [data, numberOfPages, nextPage, previousPage] = paginate(items, page, size);
     for(let d of data) d.qrCode = await this.qrCodeService.createQRCode(d.id, d.owner, d.type);
-    return jsonResponse(
-      200,
+    return jsonResponse({
+      status: 200,
       data,
-      undefined,
       numberOfPages,
       nextPage,
       previousPage
-    );
+    });
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
@@ -61,16 +60,15 @@ export default class ItemsController {
         ]
       }
     });
-    if(!item) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("Item not found")
-    );
+    if(!item) return jsonResponse({
+      status: 404, 
+      error: new JsonResponseError("Item not found")
+    });
     var qrCode = await this.qrCodeService.createQRCode(id, owner!, item.type)
-    return jsonResponse(
-      200,
-      { item, qrCode }
-    );
+    return jsonResponse({
+      status: 200,
+      data: { item, qrCode }
+    });
   }
 
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
@@ -86,13 +84,12 @@ export default class ItemsController {
         ]
       }
     });
-    if(!item) return jsonResponse(
-      404,
-      undefined,
-      new JsonResponseError("Item not found.")
-    );
+    if(!item) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Item not found.")
+    });
     await item.softRemove();
-    return jsonResponse(200);
+    return jsonResponse({ status: 200 });
   }
 
   @Patch("/:id", [useParamsForm(ObjectIDForm), useForm(ItemUpdateForm)])
@@ -108,17 +105,16 @@ export default class ItemsController {
         ]
       }
     });
-    if(!item) return jsonResponse(
-      404,
-      undefined,
-      new JsonResponseError("item not found.")
-    );
+    if(!item) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("item not found.")
+    });
     Object.assign(item, itemUpdateForm.cleanedData);
     await item.save();
-    return jsonResponse(
-      200,
-      item
-    );
+    return jsonResponse({
+      status: 200,
+      data: item
+    });
   }
 
 }

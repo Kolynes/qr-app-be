@@ -1,9 +1,7 @@
 import { Request } from "express";
-import { BaseEntity } from "typeorm";
 import { IIndexable } from "../../types";
 import { RouteHandler, RouteHandlerDecorator } from "../controller/types";
 import { jsonResponse, JsonResponseError } from "../responses";
-
 
 export function rule(item: string): MethodDecorator {
   return (target: any, propertyKey: string | symbol, descriptor) => {
@@ -72,11 +70,10 @@ export function useForm(FormClass: { new(data: IIndexable): Form }): RouteHandle
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.body);
-      if (!form.validate()) return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Invalid parameters", form.errors)
-      )
+      if (!form.validate()) return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Invalid parameters", form.errors)
+      })
       args.push(form);
       return await wrapped(request, ...args);
     }
@@ -87,11 +84,10 @@ export function useQueryForm(FormClass: { new(data: IIndexable): Form }): RouteH
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.query);
-      if (!form.validate()) return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Invalid parameters", form.errors)
-      )
+      if (!form.validate()) return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Invalid parameters", form.errors)
+      });
       args.push(form);
       return await wrapped(request, ...args);
     }
@@ -102,11 +98,10 @@ export function useParamsForm(FormClass: { new(data: IIndexable): Form }): Route
   return (wrapped: RouteHandler) => {
     return async (request: Request, ...args: any[]) => {
       const form = new FormClass(request.params);
-      if (!form.validate()) return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Invalid parameters", form.errors)
-      )
+      if (!form.validate()) return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Invalid parameters", form.errors)
+      });
       args.push(form);
       return await wrapped(request, ...args);
     }

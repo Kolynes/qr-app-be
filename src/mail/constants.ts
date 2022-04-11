@@ -1,0 +1,1 @@
+import { EEmailTemplate } from "./types";

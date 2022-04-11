@@ -1,5 +1,4 @@
 import { Request } from "express";
-import { ObjectId } from "mongodb";
 import { UserEntity } from "../../auth/entities/UserEntity";
 import { SignupForm } from "../../auth/forms";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
@@ -13,7 +12,7 @@ import { jsonResponse, JsonResponseError, Responder } from "../../utils/response
 import { service } from "../../utils/services/ServiceProvider";
 
 @Controller([AuthMiddleware])
-export default class EmploymentController {
+export default class OrganizationController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
@@ -27,19 +26,17 @@ export default class EmploymentController {
       await newEmployee.save();
       user.userType = EUserType.employer;
       await user.save();
-      return jsonResponse(201);
+      return jsonResponse({status: 201});
     } catch (e) {
       if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
-        return jsonResponse(
-          400,
-          undefined,
-          new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
-        );
-      return jsonResponse(
-        400,
-        undefined,
-        new JsonResponseError("Failed to create user")
-      );
+        return jsonResponse({
+          status: 400,
+          error: new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
+        });
+      return jsonResponse({
+        status: 400,
+        error: new JsonResponseError("Failed to create user")
+      });
     }
   }
 
@@ -57,13 +54,12 @@ export default class EmploymentController {
       }
     });
     if (!employee)
-      return jsonResponse(
-        404,
-        undefined,
-        new JsonResponseError("Employee not found")
-      );
+      return jsonResponse({
+        status: 404,
+        error: new JsonResponseError("Employee not found")
+      });
     await employee.softRemove();
-    return jsonResponse(200);
+    return jsonResponse({status: 200});
   }
 
   @Get()
@@ -88,14 +84,13 @@ export default class EmploymentController {
 
     const [data, numberOfPages, nextPage, previousPage] = paginate(await Promise.all(employees), page, size);
 
-    return jsonResponse(
-      200,
+    return jsonResponse({
+      status: 200,
       data,
-      undefined,
       numberOfPages,
       nextPage,
       previousPage
-    );
+    });
   }
 
 }

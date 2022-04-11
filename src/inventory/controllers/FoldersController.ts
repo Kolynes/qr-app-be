@@ -23,7 +23,10 @@ export default class FoldersController {
     const { name } = form.cleanedData;
     const folder = FolderEntity.create({ name, owner });
     await folder.save();
-    return jsonResponse(201, await folder.toDto())
+    return jsonResponse({
+      status: 201, 
+      data: await folder.toDto()
+    });
   }
 
   @Get()
@@ -43,14 +46,13 @@ export default class FoldersController {
     })
 
     const [data, numberOfPages, nextPage, previousPage] = paginate(folders, page, size);
-    return jsonResponse(
-      200,
+    return jsonResponse({
+      status: 200,
       data,
-      undefined,
       numberOfPages,
       nextPage,
       previousPage
-    );
+    });
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
@@ -60,15 +62,14 @@ export default class FoldersController {
     const folder = await FolderEntity.findOne({
       where: { _id: id, owner }
     });
-    if(!folder) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("Folder not found")
-    );
-    return jsonResponse(
-      200,
-      await folder.toDto()
-    );
+    if (!folder) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Folder not found")
+    });
+    return jsonResponse({
+      status: 200,
+      data: await folder.toDto()
+    });
   }
 
   @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
@@ -79,26 +80,24 @@ export default class FoldersController {
     const folder = await FolderEntity.findOne({
       where: { _id: id, owner }
     });
-    if(!folder) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("Folder not found")
-    );
-    for(let _id of items) {
+    if (!folder) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Folder not found")
+    });
+    for (let _id of items) {
       let item = await ItemEntity.findOne({
         where: { owner, _id }
       });
-      if(!item) return jsonResponse(
-        404,
-        undefined,
-        new JsonResponseError("Item not found", { item: _id })
-      );
-      else if(item.folder !== folder.id.toString()) {
+      if (!item) return jsonResponse({
+        status: 404,
+        error: new JsonResponseError("Item not found", { item: _id })
+      });
+      else if (item.folder !== folder.id.toString()) {
         item.folder = folder.id.toString();
         item.save();
       }
     }
-    return jsonResponse(200);
+    return jsonResponse({ status: 200 });
   }
 
   @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderForm)])
@@ -109,25 +108,23 @@ export default class FoldersController {
     const folder = await FolderEntity.findOne({
       where: { _id: id, owner }
     });
-    if(!folder) return jsonResponse(
-      404, 
-      undefined, 
-      new JsonResponseError("Folder not found")
-    );
-    for(let _id of items) {
+    if (!folder) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Folder not found")
+    });
+    for (let _id of items) {
       let item = await ItemEntity.findOne({
         where: { owner, _id }
       });
-      if(!item) return jsonResponse(
-        404,
-        undefined,
-        new JsonResponseError("Item not found", { item: _id })
-      );
-      else if(item.folder == folder.id.toString()) {
+      if (!item) return jsonResponse({
+        status: 404,
+        error: new JsonResponseError("Item not found", { item: _id })
+      });
+      else if (item.folder == folder.id.toString()) {
         item.folder = undefined;
         item.save();
       }
     }
-    return jsonResponse(200);
+    return jsonResponse({ status: 200 });
   }
 }

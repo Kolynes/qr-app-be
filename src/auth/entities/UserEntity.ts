@@ -20,10 +20,7 @@ export class UserEntity extends BaseEntity {
   email!: string;
 
   @Column()
-  userType!: EUserType;
-
-  @Column()
-  employer!: string;
+  organization?: string;
 
   @Column()
   password!: string;
