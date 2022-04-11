@@ -1,16 +1,17 @@
 import "reflect-metadata";
+require("dotenv").config()
+import "./services";
 import { createConnection } from "typeorm";
 import express from "express";
-import "./services";
 import AuthController from "./auth/controllers/AuthController";
 import { registerController } from "./utils/controller";
 import bodyParser from "body-parser";
-import EmploymentController from "./employees/controllers/EmployeesController";
+import EmploymentController from "./organizations/controllers/OrganizationsController";
 import ItemsController from "./inventory/controllers/ItemsController";
 import QRController from "./inventory/controllers/QRController";
 import FoldersController from "./inventory/controllers/FoldersController";
 
-require("dotenv").config()
+
 
 createConnection().then(async connection => {
   const app = express();
