@@ -8,11 +8,10 @@ import {
   ObjectIdColumn, 
   UpdateDateColumn 
 } from "typeorm";
-import { EQRCodeType } from "../types";
+import { EDirectoryType } from "../types";
 
 @Entity()
-export class ItemEntity extends BaseEntity {
-  
+export class DirectoryLikeEntity extends BaseEntity {
   @ObjectIdColumn()
   id!: ObjectID;
 
@@ -20,35 +19,14 @@ export class ItemEntity extends BaseEntity {
   organization!: string;
 
   @Column()
-  type!: EQRCodeType;
+  directoryType!: EDirectoryType;
 
   @Column()
-  totalWeight!: number;
+  item?: string;
 
   @Column()
-  geneticName!: string;
-  
-  @Column()
-  history?: string;
-  
-  @Column()
-  tags?: string[];
-  
-  @Column()
-  cooked?: number;
-  
-  @Column()
-  unitOfMeasure?: string;
-  
-  @Column()
-  sterilizationDevice?: string;
-  
-  @Column()
-  comments?: string;
-  
-  @Column()
-  ingredientsByWeight?: string;
-  
+  name?: string;
+
   @Column()
   parent?: string;
 
@@ -60,5 +38,4 @@ export class ItemEntity extends BaseEntity {
 
   @DeleteDateColumn()
   deleteDate?: Date;
-  
 }

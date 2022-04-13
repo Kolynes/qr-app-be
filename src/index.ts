@@ -6,10 +6,8 @@ import express from "express";
 import AuthController from "./auth/controllers/AuthController";
 import { registerController } from "./utils/controller";
 import bodyParser from "body-parser";
-import EmploymentController from "./organizations/controllers/OrganizationsController";
-import ItemsController from "./inventory/controllers/ItemsController";
-import QRController from "./inventory/controllers/QRController";
-import FoldersController from "./inventory/controllers/FoldersController";
+import OrganizationsController from "./organizations/controllers/OrganizationsController";
+import InventoryController from "./inventory/controllers/inventoryController";
 
 
 
@@ -19,10 +17,8 @@ createConnection().then(async connection => {
   app.use(bodyParser.urlencoded({ extended: true }));
 
   registerController(AuthController, app, "/auth");
-  registerController(EmploymentController, app, "/employees");
-  registerController(ItemsController, app, "/items");
-  registerController(QRController, app, "/qr");
-  registerController(FoldersController, app, "/folders");
+  registerController(OrganizationsController, app, "/organizations");
+  registerController(InventoryController, app, "/inventory");
 
   app.listen(process.env.PORT || 3000, () => {
     console.log(`listening on ${process.env.PORT || 3000}`)

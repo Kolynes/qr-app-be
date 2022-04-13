@@ -13,3 +13,15 @@ export class ObjectIDForm extends Form {
     }
   }
 }
+
+export class OrganizationIdForm extends Form {
+  @rule("organization")
+  checkOrganizationId(organization: string) {
+    requiredLengthRule(organization, 24, 24);
+    try {
+      this.cleanedData.organization = ObjectId(organization);
+    } catch (e) {
+      throw new ValidationError((e as Object).toString());
+    }
+  }
+}

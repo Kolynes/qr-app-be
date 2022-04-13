@@ -2,7 +2,7 @@ import { Request } from "express";
 import { UserEntity } from "../../auth/entities/UserEntity";
 import { SignupForm } from "../../auth/forms";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
-import { EUserType, IAuthService } from "../../auth/types";
+import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
 import { Controller, Delete, Get, Post } from "../../utils/controller";
@@ -16,15 +16,36 @@ export default class OrganizationController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
+  async createCompany() {
+
+  }
+
+  async deleteOrganization() { 
+
+  }
+
+  async getOrganization() {
+
+  }
+
+  async getMembers() {
+
+  }
+
+  async addMembers() {
+
+  }
+
+  async removeMembers() {
+    
+  }
+
   @Post("", [useForm(SignupForm)])
   async createEmployee(request: Request, form: SignupForm): Promise<Responder> {
     try {
       const user = (await this.authService.getUser(request))!;
       const newEmployee = UserEntity.create(form.cleanedData);
-      newEmployee.userType = EUserType.employee;
-      newEmployee.employer = user.id.toString();
       await newEmployee.save();
-      user.userType = EUserType.employer;
       await user.save();
       return jsonResponse({status: 201});
     } catch (e) {

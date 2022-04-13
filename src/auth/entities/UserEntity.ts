@@ -1,8 +1,6 @@
 import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDateColumn, DeleteDateColumn, ObjectID } from "typeorm";
 import bcrypt from "bcrypt";
 import UserDto from "../dtos/UserDto";
-import { EUserType } from "../types";
-import { ObjectId } from "mongodb";
 
 @Entity()
 export class UserEntity extends BaseEntity {

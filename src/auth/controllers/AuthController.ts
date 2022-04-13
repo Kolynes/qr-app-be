@@ -9,7 +9,7 @@ import { service } from "../../utils/services/ServiceProvider";
 import { UserEntity } from "../entities/UserEntity";
 import { VerificationEntity } from "../entities/VerificationEntity";
 import { LoginForm, RecoverAccountForm, ResetPasswordForm, SignupForm } from "../forms";
-import { EUserType, IAuthService } from "../types";
+import { IAuthService } from "../types";
 
 @Controller()
 export default class AuthController {
@@ -30,7 +30,7 @@ export default class AuthController {
         status: 404,
         error: new JsonResponseError("User not found")
       });
-    if (! await user.checkPassword(form.cleanedData.password))
+    if (!await user.checkPassword(form.cleanedData.password))
       return jsonResponse({
         status: 400,
         error: new JsonResponseError("Invalid credentials")
@@ -46,15 +46,20 @@ export default class AuthController {
   async signUp(request: Request, form: SignupForm): Promise<Responder> {
     try {
       const user = UserEntity.create(form.cleanedData);
-      user.userType = EUserType.single;
       await user.setPassword(form.cleanedData.password);
       await user.save();
+      this.mailService.sendMail(
+        EEmailTemplate.signUpNote, 
+        await user.toDto(), 
+        user.email
+      );
       return jsonResponse({
         status: 201,
         data: await user.toDto(),
         headers: await this.authService.generateTokenHeader({ id: user.id })
       });
     } catch (e) {
+      console.log(e)
       if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
         return jsonResponse({
           status: 400,
@@ -78,10 +83,14 @@ export default class AuthController {
     let verificationEntity = await VerificationEntity.findOne({ userId: user.id.toString() });
     if(!verificationEntity) verificationEntity = VerificationEntity.create({ 
       userId: user.id.toString(), 
-      code: CodeGenerator.generateCode(6) 
+      code: CodeGenerator.generateCode(6).toUpperCase() 
     });
     await verificationEntity.save();
-    this.mailService.sendMail(EEmailTemplate.passwordRecoveryCode, { code: verificationEntity.code }, "qr-app", email);
+    this.mailService.sendMail(
+      EEmailTemplate.passwordRecoveryCode, 
+      { code: verificationEntity.code }, 
+      email
+    );
     return jsonResponse({status: 201});
   }
 

@@ -9,5 +9,5 @@ export enum EEmailTemplate {
 }
 
 export interface IMailService extends Service {
-  sendMail(template: EEmailTemplate, context: IIndexable, sender: string, recipient: string): Promise<MessagesSendResult>;
+  sendMail(template: EEmailTemplate, context: IIndexable, recipient: string): Promise<MessagesSendResult>;
 }

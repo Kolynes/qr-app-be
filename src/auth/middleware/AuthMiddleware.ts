@@ -4,7 +4,6 @@ import { ParsedQs } from "qs";
 import { EServices } from "../../types";
 import Middleware from "../../utils/middleware";
 import { service } from "../../utils/services/ServiceProvider";
-import { UserEntity } from "../entities/UserEntity";
 import { IAuthService } from "../types";
 
 export default class AuthMiddleware extends Middleware {

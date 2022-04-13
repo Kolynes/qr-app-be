@@ -1,10 +1,11 @@
 import { ObjectId } from "mongodb";
+import { OrganizationIdForm } from "../common/forms";
 import Form, { rule, ValidationError } from "../utils/form";
 import { existsInRule, rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 import { QRCodeTypes } from "./constants";
 import { EQRCodeType } from "./types";
 
-export class ItemForm extends Form {
+export class ItemForm extends OrganizationIdForm {
   @rule("numberOfItems")
   checkNumberOfItems(numberOfItems: number) {
     rangeRule(numberOfItems, 1);
@@ -24,9 +25,8 @@ export class ItemForm extends Form {
 export class ItemUpdateForm extends Form {
   blacklist: string[] = [
     "id",
-    "owner",
+    "organization",
     "type",
-    "folder",
     "updateDate",
     "createDate",
     "deleteDate",
@@ -49,7 +49,7 @@ export class FolderItemsForm extends Form {
   }
 }
 
-export class FolderForm extends Form {
+export class FolderForm extends OrganizationIdForm {
   @rule("name")
   checkName(name: string) {
     requiredRule(name);

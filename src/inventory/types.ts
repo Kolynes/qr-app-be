@@ -10,3 +10,8 @@ export enum EQRCodeType {
 export interface IQRService extends Service {
   createQRCode(id: string, ownerId: string, type: EQRCodeType): Promise<string>;
 }
+
+export enum EDirectoryType {
+  folder = "folder",
+  item = "item"
+}

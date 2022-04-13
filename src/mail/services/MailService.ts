@@ -14,12 +14,12 @@ class MailService extends Service implements IMailService {
     key: process.env.MAILGUN_API_KEY!
   });
 
-  async sendMail(template: EEmailTemplate, context: IIndexable<any>, sender: string, recipient: string): Promise<MessagesSendResult> {
+  async sendMail(template: EEmailTemplate, context: IIndexable<any>, recipient: string): Promise<MessagesSendResult> {
     const templateText = fs.readFileSync(`${__dirname}/../${template}`);
     return await this.client.messages.create(
       process.env.DOMAIN_NAME!,
       {
-        from: sender,
+        from: process.env.MAILGUN_SENDER!,
         to: recipient,
         html: Mustache.render(
           templateText.toString(),

@@ -1,12 +1,9 @@
-import { EServices, IIndexable, Type } from "../../types";
+import { EServices, IIndexable } from "../../types";
 import Service, { serviceClass } from "../../utils/services/Service";
-import { EUserType, IAuthService } from "../types";
+import { IAuthService } from "../types";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { readFileSync } from "fs";
 import { Request } from "express";
-import { ParamsDictionary } from "express-serve-static-core";
-import { ParsedQs } from "qs";
-import { BaseEntity } from "typeorm";
 import { UserEntity } from "../entities/UserEntity";
 
 @serviceClass(EServices.auth)
@@ -56,14 +53,6 @@ class AuthService extends Service implements IAuthService {
     const data = await this.verifyToken(token);
     if(!data) return undefined;
     return (await UserEntity.findOne(data.id));
-  }
-
-  async getOwnerId(request: Request): Promise<string | undefined> {
-    const user = await this.getUser(request);
-    if (!user) return undefined;
-    return user.userType == EUserType.employee
-      ? user.employer
-      : user.id.toString();
   }
 
   extractToken(request: Request): string | undefined {
