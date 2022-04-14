@@ -15,7 +15,7 @@ class MailService extends Service implements IMailService {
   });
 
   async sendMail(template: EEmailTemplate, context: IIndexable<any>, recipient: string): Promise<MessagesSendResult> {
-    const templateText = fs.readFileSync(`${__dirname}/../${template}`);
+    const templateText = fs.readFileSync(`${__dirname}/../../../${template}`);
     return await this.client.messages.create(
       process.env.DOMAIN_NAME!,
       {
