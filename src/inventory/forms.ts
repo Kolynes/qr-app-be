@@ -49,9 +49,10 @@ export class FolderItemsForm extends Form {
   }
 }
 
-export class FolderForm extends OrganizationIdForm {
+export class FolderCreateForm extends OrganizationIdForm {
   @rule("name")
   checkName(name: string) {
     requiredRule(name);
   }
+  
 }

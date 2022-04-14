@@ -5,8 +5,8 @@ import { IBatchesService } from "../types";
 
 @serviceClass(EServices.batches)
 class BatchesService extends Service implements IBatchesService {
-  async createBatch(numberOfItems: number): Promise<BatchEntity> {
-    const batch = BatchEntity.create({ numberOfItems });
+  async createBatch(items: string[]): Promise<BatchEntity> {
+    const batch = BatchEntity.create({ items: items.map(item => ({ id: item })) });
     await batch.save();
     return batch;
   }

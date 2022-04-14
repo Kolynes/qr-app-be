@@ -1,117 +1,95 @@
 import { Request } from "express";
 import { UserEntity } from "../../auth/entities/UserEntity";
-import { SignupForm } from "../../auth/forms";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
-import { Controller, Delete, Get, Post } from "../../utils/controller";
+import { Controller, Delete, Get, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
-import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
+import OrganizationDto from "../dtos/OrganizationDto";
+import { OrganizationEntity } from "../entities/OrganizationEntity";
+import { OrganizationCreateForm, OrganizationMembersForm } from "../forms";
 
 @Controller([AuthMiddleware])
 export default class OrganizationController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
-  async createCompany() {
-
-  }
-
-  async deleteOrganization() { 
-
-  }
-
-  async getOrganization() {
-
-  }
-
-  async getMembers() {
-
-  }
-
-  async addMembers() {
-
-  }
-
-  async removeMembers() {
-    
-  }
-
-  @Post("", [useForm(SignupForm)])
-  async createEmployee(request: Request, form: SignupForm): Promise<Responder> {
-    try {
-      const user = (await this.authService.getUser(request))!;
-      const newEmployee = UserEntity.create(form.cleanedData);
-      await newEmployee.save();
-      await user.save();
-      return jsonResponse({status: 201});
-    } catch (e) {
-      if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
-        return jsonResponse({
-          status: 400,
-          error: new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
-        });
-      return jsonResponse({
-        status: 400,
-        error: new JsonResponseError("Failed to create user")
-      });
-    }
+  @Post("", [useForm(OrganizationCreateForm)])
+  async createOrganization(request: Request, form: OrganizationCreateForm): Promise<Responder> {
+    const user = (await this.authService.getUser(request))!;
+    const { name } = form.cleanedData;
+    const result = await OrganizationEntity.count({
+      where: { 
+        owner: user.id.toString(), 
+        name 
+      }
+    });
+    if(result > 0) return jsonResponse({
+      status: 400,
+      error: new JsonResponseError(
+        "Invalid parameters",
+        { name: ["This organization already exists"] }
+      )
+    });
+    const organization = OrganizationEntity.create(form.cleanedData);
+    organization.owner = user.id.toString();
+    await organization.save();
+    return jsonResponse({ status: 201 });
   }
 
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
-  async deleteEmployee(request: Request, form: ObjectIDForm): Promise<Responder> {
+  async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> { 
     const user = (await this.authService.getUser(request))!;
     const { id } = form.cleanedData;
-    const employee = await UserEntity.findOne({
+    const organization = await OrganizationEntity.findOne({
       where: {
-        $and: [
-          { _id: id },
-          { employer: user.id.toString() },
-          { deleteDate: undefined }
-        ]
+        _id: id
       }
     });
-    if (!employee)
-      return jsonResponse({
-        status: 404,
-        error: new JsonResponseError("Employee not found")
-      });
-    await employee.softRemove();
-    return jsonResponse({status: 200});
+    if(!organization) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Organization not found")
+    });
+    const owner = await this.authService.getOwnerFromOrganization(id);
+    if(user.id.toString() != owner) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this operation.")
+    });
+    await organization.softRemove();
+    return jsonResponse({ status: 200 });
   }
 
-  @Get()
-  async getEmployees(request: Request): Promise<Responder> {
-    const user = (await this.authService.getUser(request))!;
-    const query = request.query.query || "";
-    const page = Math.abs(parseInt(request.query.page as string)) || 1;
-    const size = parseInt(request.query.size as string) || 100;
-    const employees = (await UserEntity.find({
-      where: {
-        $and: [
-          { employer: user.id.toString() },
-          { deleteDate: undefined }
-        ],
-        $or: [
-          { firstName: new RegExp(query as string) },
-          { lastName: new RegExp(query as string) },
-          { email: new RegExp(query as string) },
-        ]
-      }
-    })).map(async e => await e.toDto());
-
-    const [data, numberOfPages, nextPage, previousPage] = paginate(await Promise.all(employees), page, size);
-
+  @Get("/:id", [useParamsForm(ObjectIDForm)])
+  async getOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
+    const { id } = form.cleanedData;
+    const organization = await OrganizationEntity.findOne({
+      where: { _id: id }
+    });
+    if(!organization) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Organization not found")
+    });
+    const isMember = await this.authService.isMember(organization.id.toString(), request);
+    if(!isMember) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this operation.")
+    });
     return jsonResponse({
       status: 200,
-      data,
-      numberOfPages,
-      nextPage,
-      previousPage
+      data: OrganizationDto.create(organization)
     });
   }
+
+  // @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(OrganizationMembersForm)])
+  // async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm): Promise<Responder> {
+
+  // }
+
+  // async removeMembers() {
+
+  // }
 
 }

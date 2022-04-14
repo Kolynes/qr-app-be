@@ -10,4 +10,6 @@ export interface IAuthService extends Service {
   verifyToken(token: string): Promise<JwtPayload | undefined>;
   getUser(request: Request): Promise<UserEntity | undefined>;
   extractToken(request: Request): string | undefined;
+  getOwnerFromOrganization(organizationId: string): Promise<string | undefined>;
+  isMember(organizationId: string, request: Request): Promise<boolean>;
 }

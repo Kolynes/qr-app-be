@@ -2,6 +2,11 @@ import { Entity, Column, BaseEntity, ObjectIdColumn, UpdateDateColumn, CreateDat
 import bcrypt from "bcrypt";
 import UserDto from "../dtos/UserDto";
 
+class Organization {
+  @Column()
+  id!: string;
+}
+
 @Entity()
 export class UserEntity extends BaseEntity {
 
@@ -17,8 +22,8 @@ export class UserEntity extends BaseEntity {
   @Column({ unique: true })
   email!: string;
 
-  @Column()
-  organization?: string;
+  @Column(item => Organization)
+  organizations!: Organization[];
 
   @Column()
   password!: string;

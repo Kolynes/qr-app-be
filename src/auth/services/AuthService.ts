@@ -5,6 +5,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { readFileSync } from "fs";
 import { Request } from "express";
 import { UserEntity } from "../entities/UserEntity";
+import { OrganizationEntity } from "../../organizations/entities/OrganizationEntity";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
@@ -61,5 +62,20 @@ class AuthService extends Service implements IAuthService {
     const [prefix, token] = authorization.split(" ");
     if(!(prefix.toLowerCase() == "bearer" && token)) return undefined;
     return token;
+  }
+
+  async getOwnerFromOrganization(organizationId: string): Promise<string | undefined> {
+    const organization = await OrganizationEntity.findOne(organizationId);
+    if(!organization) return undefined;
+    return organization.owner;
+  }
+
+  async isMember(organizationId: string, request: Request): Promise<boolean> {
+    const organization = await OrganizationEntity.findOne(organizationId);
+    if(!organization) return false;
+    const user = await this.getUser(request);
+    if(!user) return false;
+    if(user.organizations.includes({ id: organization.id.toString() })) return false;
+    return true;
   }
 }

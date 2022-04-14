@@ -28,6 +28,9 @@ export class DirectoryLikeEntity extends BaseEntity {
   name?: string;
 
   @Column()
+  color?: string;
+
+  @Column()
   parent?: string;
 
   @UpdateDateColumn()

@@ -1,5 +1,9 @@
 import { BaseEntity, Column, Entity, ObjectID, ObjectIdColumn } from "typeorm";
 
+class Member {
+  @Column()
+  id!: string;
+}
 @Entity()
 export class OrganizationEntity extends BaseEntity {
   @ObjectIdColumn()
@@ -10,4 +14,7 @@ export class OrganizationEntity extends BaseEntity {
 
   @Column()
   owner!: string;
+
+  @Column(type => Member)
+  members!: Member[];
 }

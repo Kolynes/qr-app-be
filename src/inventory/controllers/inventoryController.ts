@@ -8,7 +8,7 @@ import { jsonResponse, JsonResponseError, Responder } from "../../utils/response
 import { service } from "../../utils/services/ServiceProvider";
 import { DirectoryLikeEntity } from "../entities/DirectoryLikeEntity";
 import { ItemEntity } from "../entities/ItemEntity";
-import { FolderItemsForm, FolderForm, ItemForm } from "../forms";
+import { FolderItemsForm, FolderCreateForm, ItemForm } from "../forms";
 import { EDirectoryType, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
@@ -39,10 +39,10 @@ export default class InventoryController {
     });
   }
 
-  @Post("", [useForm(FolderForm)])
-  async createFolder(request: Request, form: FolderForm): Promise<Responder> {
-    const { name, parent, organization } = form.cleanedData;
-    const folder = DirectoryLikeEntity.create({ name, parent, organization });
+  @Post("", [useForm(FolderCreateForm)])
+  async createFolder(request: Request, form: FolderCreateForm): Promise<Responder> {
+    const { name, parent, organization, color } = form.cleanedData;
+    const folder = DirectoryLikeEntity.create({ name, parent, organization, color });
     await folder.save();
     return jsonResponse({
       status: 201, 
@@ -77,8 +77,8 @@ export default class InventoryController {
     return jsonResponse({ status: 200 });
   }
 
-  @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderForm)])
-  async removeFromDirectory(request: Request, idForm: ObjectIDForm, folderForm: FolderForm): Promise<Responder> {
+  @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderCreateForm)])
+  async removeFromDirectory(request: Request, idForm: ObjectIDForm, folderForm: FolderCreateForm): Promise<Responder> {
     const { id } = idForm.cleanedData;
     const { items } = folderForm.cleanedData;
     const folder = await DirectoryLikeEntity.findOne({
