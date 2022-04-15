@@ -35,8 +35,8 @@ export default class InventoryController {
       });
       await item.save();
       items.push(item);
-      batch.items.push({ id: item.id.toString() });
     }
+    batch.items = items.map(item => ({ id: item.id.toString() }));
     await batch.save();
     return jsonResponse({
       status: 201,
