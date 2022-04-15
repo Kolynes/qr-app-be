@@ -22,9 +22,6 @@ export class UserEntity extends BaseEntity {
   @Column({ unique: true })
   email!: string;
 
-  @Column(item => Organization)
-  organizations!: Organization[];
-
   @Column()
   password!: string;
 

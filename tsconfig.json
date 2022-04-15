@@ -15,6 +15,7 @@
       "experimentalDecorators": true,
       "sourceMap": true,
       "strict": true,
+      "downlevelIteration": true,
       "skipLibCheck": true 
    },
    "exclude": [

@@ -1,11 +1,13 @@
 import { ObjectId } from "mongodb";
 import Form, { rule, ValidationError } from "../utils/form";
-import { requiredLengthRule } from "../utils/form/rules";
+import { emailRule, notNullRule, requiredLengthRule } from "../utils/form/rules";
+import { INewMember } from "./types";
 
 export class OrganizationMembersForm extends Form {
   @rule("members")
   checkMembers(members: string[]) {
-    if(members && members.length > 0) {
+    notNullRule(members);
+    if(members.length > 0) {
       for(let member of members) {
         requiredLengthRule(member, 24, 24);
         try {
@@ -14,6 +16,19 @@ export class OrganizationMembersForm extends Form {
           throw new ValidationError((e as Object).toString());
         }
       }
+    }
+  }
+}
+
+export class OrganizationAddMembersForm extends Form {
+  @rule("newMembers")
+  checkNewMembers(newMembers: INewMember[]) {
+    notNullRule(newMembers);
+    for(let newMember of newMembers) {
+      emailRule(newMember.email);
+      newMember.email = newMember.email.trim().toLowerCase();
+      newMember.firstName = newMember.firstName && newMember.firstName.trim();
+      newMember.lastName = newMember.lastName && newMember.lastName.trim();
     }
   }
 }

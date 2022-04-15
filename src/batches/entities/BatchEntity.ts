@@ -27,8 +27,6 @@ export class BatchEntity extends BaseEntity {
   deleteDate?: Date;
 
   async toDto(): Promise<BatchDto> {
-    const dto = new BatchDto(this);
-    await dto.setItems(this.items.map(item => item.id));
-    return dto;
+    return BatchDto.create(this);
   }
 }

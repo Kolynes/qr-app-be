@@ -10,6 +10,10 @@ export function requiredRule(value?: string) {
   if (!value || !(value.trim())) throw new ValidationError("this field is required");
 }
 
+export function notNullRule(value: any) {
+  if(!value) throw new ValidationError("this field is required"); 
+}
+
 export function requiredLengthRule(value: string, requiredMinLength: number = - Infinity, requiredMaxLength: number = Infinity) {
   if (value) {
     if (value.length < requiredMinLength)

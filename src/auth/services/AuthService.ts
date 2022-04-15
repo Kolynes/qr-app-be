@@ -75,7 +75,7 @@ class AuthService extends Service implements IAuthService {
     if(!organization) return false;
     const user = await this.getUser(request);
     if(!user) return false;
-    if(user.organizations.includes({ id: organization.id.toString() })) return false;
+    if(organization.members.includes({ id: user.id.toString() })) return false;
     return true;
   }
 }

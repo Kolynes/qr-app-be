@@ -1,22 +1,24 @@
 import { ObjectID } from "typeorm";
-import { ItemEntity } from "../../inventory/entities/ItemEntity";
+import { DirectoryLikeEntity } from "../../inventory/entities/DirectoryLikeEntity";
 import { BatchEntity } from "../entities/BatchEntity";
 
 export default class BatchDto {
   id: ObjectID;
   organization: string;
-  items!: ItemEntity[];
+  items!: DirectoryLikeEntity[];
 
-  constructor(batch: BatchEntity) {
+  private constructor(batch: BatchEntity) {
     this.id = batch.id;
     this.organization = batch.organization;
   }
 
-  async setItems(items: string[]) {
-    this.items = await Promise.all(
-      items.map(
-        async item => (await ItemEntity.findOne(item))!
+  static async create(batch: BatchEntity): Promise<BatchDto> {
+    const dto = new BatchDto(batch);
+    dto.items = await Promise.all(
+      batch.items.map(
+        async item => (await DirectoryLikeEntity.findOne(item.id))!
       )
     );
+    return dto;
   }
 } 

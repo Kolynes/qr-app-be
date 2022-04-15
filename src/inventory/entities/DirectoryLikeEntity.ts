@@ -8,7 +8,7 @@ import {
   ObjectIdColumn, 
   UpdateDateColumn 
 } from "typeorm";
-import { EDirectoryType } from "../types";
+import { EDirectoryType, Item } from "../types";
 
 @Entity()
 export class DirectoryLikeEntity extends BaseEntity {
@@ -21,8 +21,11 @@ export class DirectoryLikeEntity extends BaseEntity {
   @Column()
   directoryType!: EDirectoryType;
 
+  @Column(type => Item)
+  item?: Item;
+
   @Column()
-  item?: string;
+  batch?: string;
 
   @Column()
   name?: string;
@@ -31,7 +34,7 @@ export class DirectoryLikeEntity extends BaseEntity {
   color?: string;
 
   @Column()
-  parent?: string;
+  folder?: string;
 
   @UpdateDateColumn()
   updateDate?: Date;

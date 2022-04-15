@@ -1,5 +1,6 @@
 import { Request } from "express";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
+import { BatchEntity } from "../../batches/entities/BatchEntity";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
 import { Controller, Post, Put } from "../../utils/controller";
@@ -7,8 +8,7 @@ import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { DirectoryLikeEntity } from "../entities/DirectoryLikeEntity";
-import { ItemEntity } from "../entities/ItemEntity";
-import { FolderItemsForm, FolderCreateForm, ItemForm } from "../forms";
+import { FolderItemsForm, FolderCreateForm, ItemCreateForm } from "../forms";
 import { EDirectoryType, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
@@ -16,27 +16,23 @@ export default class InventoryController {
   @service(EServices.qrcode)
   private qrCodeService!: IQRService;
   
-  @Post("", [useForm(ItemForm)])
-  async createItems(request: Request, form: ItemForm): Promise<Responder> {
-    const { numberOfItems, type, totalWeight, organization } = form.cleanedData;
-    const qrCodes = [] as string[];
-
-    for(let i = 0; i < numberOfItems; i++) {
-      const item = ItemEntity.create({ organization, type, totalWeight });
+  @Post("", [useForm(ItemCreateForm)])
+  async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
+    const { numberOfItems, folder, organization } = form.cleanedData;
+    const batch = BatchEntity.create();
+    await batch.save();
+    const items = [];
+    for(let i in numberOfItems) {
+      let item = DirectoryLikeEntity.create({ 
+        folder, 
+        directoryType: EDirectoryType.item, 
+        batch: batch.id.toString(), 
+        organization 
+      });
       await item.save();
-      qrCodes.push(
-        await this.qrCodeService.createQRCode(
-          item.id.toString(), 
-          item.organization, 
-          type
-        )
-      );
+      batch.items.push({ id: item.id.toString() });
+      
     }
-    
-    return jsonResponse({
-      status: 201,
-      data: qrCodes
-    });
   }
 
   @Post("", [useForm(FolderCreateForm)])

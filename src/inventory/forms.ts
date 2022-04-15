@@ -1,24 +1,33 @@
 import { ObjectId } from "mongodb";
 import { OrganizationIdForm } from "../common/forms";
 import Form, { rule, ValidationError } from "../utils/form";
-import { existsInRule, rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
-import { QRCodeTypes } from "./constants";
-import { EQRCodeType } from "./types";
+import { rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
-export class ItemForm extends OrganizationIdForm {
+export abstract class DirectoryLikeForm extends OrganizationIdForm {
+  @rule("folder")
+  checkDirectoryId(folder?: string): void {
+    if(folder) {
+      requiredLengthRule(folder, 24, 24);
+      try {
+        this.cleanedData.folder = ObjectId(folder);
+      } catch (e) {
+        throw new ValidationError((e as Object).toString());
+      }
+    }
+  }
+}
+
+export class FolderCreateForm extends DirectoryLikeForm {
+  @rule("name")
+  checkName(name: string) {
+    requiredRule(name);
+  }
+}
+
+export class ItemCreateForm extends DirectoryLikeForm {
   @rule("numberOfItems")
   checkNumberOfItems(numberOfItems: number) {
     rangeRule(numberOfItems, 1);
-  }
-
-  @rule("type")
-  checkType(type: EQRCodeType) {
-    existsInRule(type, QRCodeTypes);
-  }
-
-  @rule("totalWeight")
-  checkWeight(totalWeight?: number) {
-    if(totalWeight) rangeRule(totalWeight, 0);
   }
 }
 
@@ -47,12 +56,4 @@ export class FolderItemsForm extends Form {
     }
     this.cleanedData.items = ids;
   }
-}
-
-export class FolderCreateForm extends OrganizationIdForm {
-  @rule("name")
-  checkName(name: string) {
-    requiredRule(name);
-  }
-  
 }

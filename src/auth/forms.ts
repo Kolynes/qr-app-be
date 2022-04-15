@@ -6,7 +6,7 @@ export class LoginForm extends Form {
   checkEmail(email: string) {
     requiredRule(email)
     emailRule(email.trim());
-    this.cleanedData.email = email.trim()
+    this.cleanedData.email = email.trim().toLowerCase();
   }
 
   @rule("password")
@@ -32,7 +32,7 @@ export class SignupForm extends Form {
   checkEmail(email: string) {
     requiredRule(email)
     emailRule(email.trim());
-    this.cleanedData.email = email.trim()
+    this.cleanedData.email = email.trim().toLowerCase();
   }
 
   @rule("password")
@@ -46,7 +46,7 @@ export class RecoverAccountForm extends Form {
   @rule("email")
   checkEmail(email: string) {
     emailRule(email);
-    this.cleanedData.email = email.trim();
+    this.cleanedData.email = email.trim().toLowerCase();
   }
 }
 

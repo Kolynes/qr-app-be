@@ -1,3 +1,4 @@
+import { Column } from "typeorm";
 import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
@@ -14,4 +15,41 @@ export interface IQRService extends Service {
 export enum EDirectoryType {
   folder = "folder",
   item = "item"
+}
+
+export class Item {
+
+  @Column()
+  type!: EQRCodeType;
+
+  @Column()
+  totalWeight!: number;
+
+  @Column()
+  geneticName!: string;
+  
+  @Column()
+  history?: string;
+  
+  @Column()
+  tags?: string[];
+  
+  @Column()
+  cooked?: number;
+  
+  @Column()
+  unitOfMeasure?: string;
+  
+  @Column()
+  sterilizationDevice?: string;
+  
+  @Column()
+  comments?: string;
+  
+  @Column()
+  ingredientsByWeight?: string;
+  
+  @Column()
+  parent?: string;
+  
 }

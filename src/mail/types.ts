@@ -3,9 +3,10 @@ import { IIndexable } from "../types";
 import Service from "../utils/services/Service";
 
 export enum EEmailTemplate {
-  passwordRecoveryCode = "./templates/passwordRecoveryCode.html",
-  signUpNote = "./templates/signUpNote.html",
-  employeeWelcomeNote = "./templates/employeeWelcomeNote.html"
+  passwordRecoveryCode = "passwordRecoveryCode",
+  signUpNote = "signUpNote",
+  memberWelcomeNote = "memberWelcomeNote",
+  newUserMemberWelcomeNote = "newUserMemberWelcomeNote"
 }
 
 export interface IMailService extends Service {
