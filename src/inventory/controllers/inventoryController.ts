@@ -24,7 +24,7 @@ export default class InventoryController {
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
-    const batch = await BatchEntity.create().save();
+    const batch = await BatchEntity.create({ organization }).save();
     const items = [];
     for(let i = 0; i < numberOfItems; i++) {
       let item = DirectoryLikeEntity.create({ 
@@ -35,7 +35,6 @@ export default class InventoryController {
       });
       await item.save();
       items.push(item);
-      console.log(batch);
       if(!batch.items) batch.items = [];
       batch.items.push({ id: item.id.toString() });
     }
