@@ -24,9 +24,9 @@ export default class InventoryController {
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
-    const batch = await BatchEntity.create({ items: [] }).save();
+    const batch = await BatchEntity.create().save();
     const items = [];
-    for(let _ in numberOfItems) {
+    for(let i = 0; i < numberOfItems; i++) {
       let item = DirectoryLikeEntity.create({ 
         folder, 
         directoryType: EDirectoryType.item, 
@@ -35,17 +35,19 @@ export default class InventoryController {
       });
       await item.save();
       items.push(item);
+      console.log(batch);
+      if(!batch.items) batch.items = [];
+      batch.items.push({ id: item.id.toString() });
     }
-    batch.items = items.map(item => ({ id: item.id.toString() }));
     await batch.save();
     return jsonResponse({
       status: 201,
       data: {
         batch: batch.id.toString(),
-        items: items.map(item => ({
-          qrCode: this.qrCodeService.createQRCode(item.id.toString(), organization.id.toString()),
+        items: await Promise.all(items.map(async item => ({
+          qrCode: await this.qrCodeService.createQRCode(item.id.toString(), organization),
           ...item
-        }))
+        })))
       }
     });
   }
@@ -62,7 +64,7 @@ export default class InventoryController {
     return jsonResponse({
       status: 201, 
       data: {
-        qrCode: this.qrCodeService.createQRCode(newFolder.id.toString(), organization.id.toString()),
+        qrCode: await this.qrCodeService.createQRCode(newFolder.id.toString(), organization),
         ...newFolder
       }
     });

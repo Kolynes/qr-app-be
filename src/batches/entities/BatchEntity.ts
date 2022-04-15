@@ -14,7 +14,7 @@ export class BatchEntity extends BaseEntity {
   @Column()
   organization!: string;
 
-  @Column(type => Item)
+  @Column(type => Item, { array: true })
   items!: Item[];
 
   @UpdateDateColumn()
