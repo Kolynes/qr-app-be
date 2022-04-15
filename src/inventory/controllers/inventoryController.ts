@@ -58,7 +58,8 @@ export default class InventoryController {
       name, 
       folder, 
       organization, 
-      color
+      color,
+      directoryType: EDirectoryType.folder
     }).save();
     return jsonResponse({
       status: 201, 
@@ -78,7 +79,7 @@ export default class InventoryController {
       error: new JsonResponseError("Directory not found")
     });
     const isMember = await this.authService.isMember(directory.organization, request);
-    if(isMember) return jsonResponse({
+    if(!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     });
@@ -89,6 +90,25 @@ export default class InventoryController {
     });
   }
 
+  @Get("/root/:id", [useParamsForm(ObjectIDForm)])
+  async getRootDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
+    const { id } = form.cleanedData;
+    const isMember = await this.authService.isMember(id, request);
+    if(!isMember) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this action")
+    });
+    const directories = await DirectoryLikeEntity.find({ organization: id.toString() });
+
+    return jsonResponse({
+      status: 200,
+      data: await Promise.all(
+        directories.map(
+          async directory => await DirectoryLikeDto.create(directory)
+        )
+      )
+    });
+  }
   // @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
   // async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
   //   const { id } = idForm.cleanedData;

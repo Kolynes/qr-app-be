@@ -72,7 +72,6 @@ class AuthService extends Service implements IAuthService {
 
   async isMember(organizationId: string, request: Request): Promise<boolean> {
     const organization = await OrganizationEntity.findOne(organizationId);
-    console.log(organizationId);
     if(!organization) return false;
     const user = await this.getUser(request);
     if(!user) return false;

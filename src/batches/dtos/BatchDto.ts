@@ -4,13 +4,10 @@ import { DirectoryLikeEntity } from "../../inventory/entities/DirectoryLikeEntit
 import { BatchEntity } from "../entities/BatchEntity";
 
 export default class BatchDto {
-  id: ObjectID;
-  organization: string;
   items!: DirectoryLikeEntity[];
 
   private constructor(batch: BatchEntity) {
-    this.id = batch.id;
-    this.organization = batch.organization;
+    Object.assign(this, batch);
   }
 
   static async create(batch: BatchEntity): Promise<BatchDto> {

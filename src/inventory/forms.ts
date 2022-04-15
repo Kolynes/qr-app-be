@@ -3,9 +3,9 @@ import { OrganizationIdForm } from "../common/forms";
 import Form, { rule, ValidationError } from "../utils/form";
 import { rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
-export abstract class DirectoryLikeForm extends OrganizationIdForm {
+export class DirectoryLikeForm extends OrganizationIdForm {
   @rule("folder")
-  checkDirectoryId(folder?: string): void {
+  checkFolderId(folder?: string): void {
     if(folder) {
       requiredLengthRule(folder, 24, 24);
       try {

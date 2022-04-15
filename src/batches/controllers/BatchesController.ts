@@ -1,6 +1,8 @@
 import { Request } from "express";
+import { ObjectId } from "mongodb";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
+import { DirectoryLikeEntity } from "../../inventory/entities/DirectoryLikeEntity";
 import { EServices } from "../../types";
 import { Controller, Delete, Get } from "../../utils/controller";
 import { useParamsForm } from "../../utils/form";
@@ -21,7 +23,6 @@ export default class BatchesController {
       status: 404,
       error: new JsonResponseError("batch not found")
     });
-    console.log(batch)
     const isMember = await this.authService.isMember(batch.organization, request);
     if (!isMember) return jsonResponse({
       status: 403,
@@ -41,13 +42,12 @@ export default class BatchesController {
       status: 404,
       error: new JsonResponseError("batch not found")
     });
-    console.log(batch)
     const isMember = await this.authService.isMember(batch.organization, request);
     if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     })
-    
+    DirectoryLikeEntity.softRemove(batch.items.map(item => ObjectId(item.id)));
     await batch.softRemove();
     return jsonResponse({ status: 200 })
   }
