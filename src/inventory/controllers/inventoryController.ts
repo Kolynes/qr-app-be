@@ -8,6 +8,7 @@ import { Controller, Get, Post } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
+import DirectoryLikeDto from "../dtos/DirectoryLikeDto";
 import { DirectoryLikeEntity } from "../entities/DirectoryLikeEntity";
 import { FolderCreateForm, ItemCreateForm } from "../forms";
 import { EDirectoryType, IQRService } from "../types";
@@ -23,7 +24,7 @@ export default class InventoryController {
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
-    const batch = await new BatchEntity().save();
+    const batch = await BatchEntity.create({ items: [] }).save();
     const items = [];
     for(let _ in numberOfItems) {
       let item = DirectoryLikeEntity.create({ 
@@ -67,25 +68,25 @@ export default class InventoryController {
     });
   }
 
-  // @Get("/:id", [useParamsForm(ObjectIDForm)])
-  // async getDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
-  //   const { id } = form.cleanedData;
-  //   const directory = await DirectoryLikeEntity.findOne(id) as DirectoryLikeEntity;
-  //   if(!directory) return jsonResponse({
-  //     status: 404,
-  //     error: new JsonResponseError("Directory not found");
-  //   });
-  //   const isMember = await this.authService.isMember(directory.organization, request);
-  //   if(isMember) return jsonResponse({
-  //     status: 403,
-  //     error: new JsonResponseError("You are not authorized to carry out this action")
-  //   });
+  @Get("/:id", [useParamsForm(ObjectIDForm)])
+  async getDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
+    const { id } = form.cleanedData;
+    const directory = await DirectoryLikeEntity.findOne(id) as DirectoryLikeEntity;
+    if(!directory) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Directory not found")
+    });
+    const isMember = await this.authService.isMember(directory.organization, request);
+    if(isMember) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this action")
+    });
 
-  //   return jsonResponse({
-  //     status: 200,
-  //     data: await DirectoryLikeDto.create(directory);
-  //   });
-  // }
+    return jsonResponse({
+      status: 200,
+      data: await DirectoryLikeDto.create(directory)
+    });
+  }
 
   // @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
   // async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
