@@ -4,7 +4,7 @@ import { IAuthService } from "../../auth/types";
 import { BatchEntity } from "../../batches/entities/BatchEntity";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
-import { Controller, Get, Post } from "../../utils/controller";
+import { Controller, Delete, Get, Post } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
@@ -20,22 +20,22 @@ export default class InventoryController {
 
   @service(EServices.auth)
   private authService!: IAuthService;
-  
+
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
     const batch = await BatchEntity.create({ organization }).save();
     const items = [];
-    for(let i = 0; i < numberOfItems; i++) {
-      let item = DirectoryLikeEntity.create({ 
-        folder, 
-        directoryType: EDirectoryType.item, 
-        batch: batch.id.toString(), 
-        organization 
+    for (let i = 0; i < numberOfItems; i++) {
+      let item = DirectoryLikeEntity.create({
+        folder,
+        directoryType: EDirectoryType.item,
+        batch: batch.id.toString(),
+        organization
       });
       await item.save();
       items.push(item);
-      if(!batch.items) batch.items = [];
+      if (!batch.items) batch.items = [];
       batch.items.push({ id: item.id.toString() });
     }
     await batch.save();
@@ -54,15 +54,15 @@ export default class InventoryController {
   @Post("/folders", [useForm(FolderCreateForm)])
   async createFolder(request: Request, form: FolderCreateForm): Promise<Responder> {
     const { name, folder, organization, color } = form.cleanedData;
-    const newFolder = await DirectoryLikeEntity.create({ 
-      name, 
-      folder, 
-      organization, 
+    const newFolder = await DirectoryLikeEntity.create({
+      name,
+      folder,
+      organization,
       color,
       directoryType: EDirectoryType.folder
     }).save();
     return jsonResponse({
-      status: 201, 
+      status: 201,
       data: {
         qrCode: await this.qrCodeService.createQRCode(newFolder.id.toString(), organization),
         ...newFolder
@@ -74,12 +74,12 @@ export default class InventoryController {
   async getDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
     const directory = await DirectoryLikeEntity.findOne(id) as DirectoryLikeEntity;
-    if(!directory) return jsonResponse({
+    if (!directory) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Directory not found")
     });
     const isMember = await this.authService.isMember(directory.organization, request);
-    if(!isMember) return jsonResponse({
+    if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     });
@@ -94,7 +94,7 @@ export default class InventoryController {
   async getRootDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
     const isMember = await this.authService.isMember(id, request);
-    if(!isMember) return jsonResponse({
+    if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     });
@@ -109,6 +109,34 @@ export default class InventoryController {
       )
     });
   }
+
+  @Delete("/:id", [useParamsForm(ObjectIDForm)])
+  async deleteDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
+    const { id } = form.cleanedData;
+    const directory = await DirectoryLikeEntity.findOne(id) as DirectoryLikeEntity;
+    if (!directory) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Directory not found")
+    });
+    const isMember = await this.authService.isMember(directory.organization, request);
+    if (!isMember) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this action")
+    });
+    const softDelete = async (directory: DirectoryLikeEntity) => {
+      if (directory.directoryType == EDirectoryType.folder) {
+        const items = await DirectoryLikeEntity.find({ folder: directory.id.toString() });
+        for (let item of items) {
+          softDelete(item);
+        }
+      }
+      directory.softRemove();
+    }
+    softDelete(directory);
+    return jsonResponse({ status: 200 });
+  }
+
+
   // @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
   // async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
   //   const { id } = idForm.cleanedData;
