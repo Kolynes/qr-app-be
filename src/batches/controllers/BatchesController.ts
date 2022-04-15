@@ -21,6 +21,7 @@ export default class BatchesController {
       status: 404,
       error: new JsonResponseError("batch not found")
     });
+    console.log(batch)
     const isMember = await this.authService.isMember(batch.organization, request);
     if (!isMember) return jsonResponse({
       status: 403,
@@ -40,11 +41,13 @@ export default class BatchesController {
       status: 404,
       error: new JsonResponseError("batch not found")
     });
+    console.log(batch)
     const isMember = await this.authService.isMember(batch.organization, request);
     if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     })
+    
     await batch.softRemove();
     return jsonResponse({ status: 200 })
   }
