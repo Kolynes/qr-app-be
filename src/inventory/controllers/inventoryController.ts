@@ -1,28 +1,31 @@
 import { Request } from "express";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
+import { IAuthService } from "../../auth/types";
 import { BatchEntity } from "../../batches/entities/BatchEntity";
 import { ObjectIDForm } from "../../common/forms";
 import { EServices } from "../../types";
-import { Controller, Post, Put } from "../../utils/controller";
+import { Controller, Get, Post } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { DirectoryLikeEntity } from "../entities/DirectoryLikeEntity";
-import { FolderItemsForm, FolderCreateForm, ItemCreateForm } from "../forms";
+import { FolderCreateForm, ItemCreateForm } from "../forms";
 import { EDirectoryType, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
 export default class InventoryController {
   @service(EServices.qrcode)
   private qrCodeService!: IQRService;
+
+  @service(EServices.auth)
+  private authService!: IAuthService;
   
-  @Post("", [useForm(ItemCreateForm)])
+  @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
-    const batch = BatchEntity.create();
-    await batch.save();
+    const batch = await new BatchEntity().save();
     const items = [];
-    for(let i in numberOfItems) {
+    for(let _ in numberOfItems) {
       let item = DirectoryLikeEntity.create({ 
         folder, 
         directoryType: EDirectoryType.item, 
@@ -30,73 +33,111 @@ export default class InventoryController {
         organization 
       });
       await item.save();
+      items.push(item);
       batch.items.push({ id: item.id.toString() });
-      
     }
+    await batch.save();
+    return jsonResponse({
+      status: 201,
+      data: {
+        batch: batch.id.toString(),
+        items: items.map(item => ({
+          qrCode: this.qrCodeService.createQRCode(item.id.toString(), organization.id.toString()),
+          ...item
+        }))
+      }
+    });
   }
 
-  @Post("", [useForm(FolderCreateForm)])
+  @Post("/folders", [useForm(FolderCreateForm)])
   async createFolder(request: Request, form: FolderCreateForm): Promise<Responder> {
-    const { name, parent, organization, color } = form.cleanedData;
-    const folder = DirectoryLikeEntity.create({ name, parent, organization, color });
-    await folder.save();
+    const { name, folder, organization, color } = form.cleanedData;
+    const newFolder = await DirectoryLikeEntity.create({ 
+      name, 
+      folder, 
+      organization, 
+      color
+    }).save();
     return jsonResponse({
       status: 201, 
-      data: folder
+      data: {
+        qrCode: this.qrCodeService.createQRCode(newFolder.id.toString(), organization.id.toString()),
+        ...newFolder
+      }
     });
   }
 
-  @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
-  async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
-    const { id } = idForm.cleanedData;
-    const { items } = folderItemsForm.cleanedData;
-    const folder = await DirectoryLikeEntity.findOne({
-      where: { _id: id, directoryType: EDirectoryType.folder }
-    });
-    if (!folder) return jsonResponse({
-      status: 404,
-      error: new JsonResponseError("Folder not found")
-    });
-    for (let _id of items) {
-      let item = await DirectoryLikeEntity.findOne({
-        where: { _id }
-      });
-      if (!item) return jsonResponse({
-        status: 404,
-        error: new JsonResponseError("Item not found", { item: _id })
-      });
-      else if (item.parent !== folder.id.toString()) {
-        item.parent = folder.id.toString();
-        item.save();
-      }
-    }
-    return jsonResponse({ status: 200 });
-  }
+  // @Get("/:id", [useParamsForm(ObjectIDForm)])
+  // async getDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
+  //   const { id } = form.cleanedData;
+  //   const directory = await DirectoryLikeEntity.findOne(id) as DirectoryLikeEntity;
+  //   if(!directory) return jsonResponse({
+  //     status: 404,
+  //     error: new JsonResponseError("Directory not found");
+  //   });
+  //   const isMember = await this.authService.isMember(directory.organization, request);
+  //   if(isMember) return jsonResponse({
+  //     status: 403,
+  //     error: new JsonResponseError("You are not authorized to carry out this action")
+  //   });
 
-  @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderCreateForm)])
-  async removeFromDirectory(request: Request, idForm: ObjectIDForm, folderForm: FolderCreateForm): Promise<Responder> {
-    const { id } = idForm.cleanedData;
-    const { items } = folderForm.cleanedData;
-    const folder = await DirectoryLikeEntity.findOne({
-      where: { _id: id }
-    });
-    if (!folder) return jsonResponse({
-      status: 404,
-      error: new JsonResponseError("Folder not found")
-    });
-    for (let _id of items) {
-      let item = await DirectoryLikeEntity.findOne({
-        where: { _id }
-      });
-      if (!item) return jsonResponse({
-        status: 404,
-        error: new JsonResponseError("Item not found", { item: _id })
-      });
-      else if (item.parent == folder.id.toString()) {
-        item.parent = undefined;
-        item.save();
-      }
-    }
-    return jsonResponse({ status: 200 });
-  }
+  //   return jsonResponse({
+  //     status: 200,
+  //     data: await DirectoryLikeDto.create(directory);
+  //   });
+  // }
+
+  // @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
+  // async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
+  //   const { id } = idForm.cleanedData;
+  //   const { items } = folderItemsForm.cleanedData;
+  //   const folder = await DirectoryLikeEntity.findOne({
+  //     where: { _id: id, directoryType: EDirectoryType.folder }
+  //   });
+  //   if (!folder) return jsonResponse({
+  //     status: 404,
+  //     error: new JsonResponseError("Folder not found")
+  //   });
+  //   for (let _id of items) {
+  //     let item = await DirectoryLikeEntity.findOne({
+  //       where: { _id }
+  //     });
+  //     if (!item) return jsonResponse({
+  //       status: 404,
+  //       error: new JsonResponseError("Item not found", { item: _id })
+  //     });
+  //     else if (item.parent !== folder.id.toString()) {
+  //       item.parent = folder.id.toString();
+  //       item.save();
+  //     }
+  //   }
+  //   return jsonResponse({ status: 200 });
+  // }
+
+  // @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderCreateForm)])
+  // async removeFromDirectory(request: Request, idForm: ObjectIDForm, folderForm: FolderCreateForm): Promise<Responder> {
+  //   const { id } = idForm.cleanedData;
+  //   const { items } = folderForm.cleanedData;
+  //   const folder = await DirectoryLikeEntity.findOne({
+  //     where: { _id: id }
+  //   });
+  //   if (!folder) return jsonResponse({
+  //     status: 404,
+  //     error: new JsonResponseError("Folder not found")
+  //   });
+  //   for (let _id of items) {
+  //     let item = await DirectoryLikeEntity.findOne({
+  //       where: { _id }
+  //     });
+  //     if (!item) return jsonResponse({
+  //       status: 404,
+  //       error: new JsonResponseError("Item not found", { item: _id })
+  //     });
+  //     else if (item.parent == folder.id.toString()) {
+  //       item.parent = undefined;
+  //       item.save();
+  //     }
+  //   }
+  //   return jsonResponse({ status: 200 });
+  // }
 }

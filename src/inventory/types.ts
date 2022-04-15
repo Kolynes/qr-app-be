@@ -9,7 +9,7 @@ export enum EQRCodeType {
 }
 
 export interface IQRService extends Service {
-  createQRCode(id: string, ownerId: string, type: EQRCodeType): Promise<string>;
+  createQRCode(id: string, ownerId: string): Promise<string>;
 }
 
 export enum EDirectoryType {
