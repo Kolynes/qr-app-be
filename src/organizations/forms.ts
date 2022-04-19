@@ -8,15 +8,17 @@ export class OrganizationMembersForm extends Form {
   @rule("members")
   checkMembers(members: string[]) {
     notNullRule(members);
+    const ids = [];
     if(members.length > 0) {
       for(let member of members) {
         requiredLengthRule(member, 24, 24);
         try {
-          ObjectId(member);
+          ids.push(new ObjectId(member));
         } catch(e) {
           throw new ValidationError((e as Object).toString());
         }
       }
+      this.cleanedData.members = ids;
     }
   }
 }

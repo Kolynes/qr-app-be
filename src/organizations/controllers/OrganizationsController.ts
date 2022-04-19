@@ -48,11 +48,9 @@ export default class OrganizationController {
     organization.owner = user._id!;
     organization.members = [user._id!]
     await this.Organization.insertOne(organization);
-    console.log(organization);
-    const organizationView = await this.Organization.findOne(organization._id!);
     return jsonResponse({ 
       status: 201,
-      data: organizationView
+      data: organization
     });
   }
 
