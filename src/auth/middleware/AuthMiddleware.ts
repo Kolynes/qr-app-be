@@ -12,7 +12,7 @@ export default class AuthMiddleware extends Middleware {
 
   async handle(request: Request<ParamsDictionary, any, any, ParsedQs, Record<string, any>>, response: Response<any, Record<string, any>>, next: NextFunction) {
     const user = await this.authService.getUser(request);
-    if(user === undefined) response.sendStatus(401);
+    if(user === null) response.sendStatus(401);
     else next();
   }
 }

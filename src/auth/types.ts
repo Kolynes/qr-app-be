@@ -9,7 +9,7 @@ export interface IAuthService extends Service {
   generateToken(data: IIndexable): Promise<string>;
   generateTokenHeader(data: IIndexable): Promise<IIndexable>;
   verifyToken(token: string): Promise<JwtPayload | undefined>;
-  getUser(request: Request): Promise<IUser | undefined>;
+  getUser(request: Request): Promise<IUser | null>;
   extractToken(request: Request): string | undefined;
   getOwnerFromOrganization(organizationId: ObjectId): Promise<string | undefined>;
   isMember(organizationId: ObjectId, request: Request): Promise<boolean>;
