@@ -1,5 +1,4 @@
 import { ObjectId } from "mongodb";
-import { Column } from "typeorm";
 import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
