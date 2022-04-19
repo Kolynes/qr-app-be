@@ -57,11 +57,11 @@ class AuthService extends Service implements IAuthService {
     }
   }
 
-  async getUser(request: Request,): Promise<IUser | undefined> {
+  async getUser(request: Request,): Promise<IUser | null> {
     const token = this.extractToken(request);
-    if(!token) return undefined;
+    if(!token) return null;
     const data = await this.verifyToken(token);
-    if(!data) return undefined;
+    if(!data) return null;
     return await this.dbService.collections.user.findOne({ _id: new ObjectId(data.id) }) as IUser;
   }
 
