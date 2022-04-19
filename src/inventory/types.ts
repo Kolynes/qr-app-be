@@ -1,4 +1,5 @@
 import { ObjectId } from "mongodb";
+import { IDates } from "../common/models";
 import Service from "../utils/services/Service";
 
 export enum EQRCodeType {
@@ -31,7 +32,7 @@ export interface IItem {
   parent?: string;
 }
 
-export interface IDirectoryLike {
+export interface IDirectoryLike extends IDates {
   _id?: ObjectId
   organization: ObjectId,
   directoryType: EDirectoryType,

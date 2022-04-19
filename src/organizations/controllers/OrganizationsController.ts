@@ -1,11 +1,12 @@
 import { Request } from "express";
-import { ObjectId } from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService, IUser } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
+import { collection } from "../../database";
 import { IDBService } from "../../database/types";
 import { EEmailTemplate, IMailService } from "../../mail/types";
-import { EServices } from "../../types";
+import { ECollections, EServices } from "../../types";
 import CodeGenerator from "../../utils/code-generator";
 import { Controller, Delete, Get, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
@@ -25,11 +26,14 @@ export default class OrganizationController {
   @service(EServices.database)
   private dbService!: IDBService;
 
+  @collection(ECollections.organization)
+  private Organization!: Collection<IOrganization>;
+
   @Post("", [useForm(OrganizationCreateForm)])
   async createOrganization(request: Request, form: OrganizationCreateForm): Promise<Responder> {
-    const user = (await this.authService.getUser(request)) as IUser;
+    const user = await this.authService.getUser(request) as IUser;
     const { name } = form.cleanedData;
-    const result = await this.dbService.collections.organization.count({
+    const result = await this.Organization.count({
       owner: user._id, 
       name 
     });
@@ -43,8 +47,8 @@ export default class OrganizationController {
     const organization = form.cleanedData as IOrganization;
     organization.owner = user._id!;
     organization.members = [{ id: user._id! }]
-    await this.dbService.collections.organization.insertOne(organization);
-    const organizationView = await this.dbService.views.organization.findOne(organization._id) as IOrganizationView;
+    await this.Organization.insertOne(organization);
+    const organizationView = await this.Organization.findOne(organization._id);
     return jsonResponse({ 
       status: 201,
       data: organizationView
@@ -55,7 +59,7 @@ export default class OrganizationController {
   async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> { 
     const user = (await this.authService.getUser(request))!;
     const { id } = form.cleanedData;
-    const organization = await this.dbService.collections.organization.findOne({ _id: id }) as IOrganization;
+    const organization = await this.Organization.findOne({ _id: id }) as IOrganization;
     if(!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
@@ -65,16 +69,16 @@ export default class OrganizationController {
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
-    await this.dbService.collections.organzation.updateOne(
+    await this.Organization.updateOne(
       { _id: organization._id}, 
-      { deleteDate: new Date().toISOString() }
+      { deleteDate: new Date() }
     );
     return jsonResponse({ status: 200 });
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
-    const organization = await this.dbService.collections.organization.findOne({ 
+    const organization = await this.Organization.findOne({ 
       _id: form.cleanedData.id
     }) as IOrganization;
     if(!organization) return jsonResponse({
@@ -89,7 +93,7 @@ export default class OrganizationController {
     ;
     return jsonResponse({
       status: 200,
-      data: await this.dbService.views.organization.findOne({
+      data: await this.Organization.findOne({
         _id: organization._id
       })
     });
@@ -98,8 +102,10 @@ export default class OrganizationController {
   @Get()
   async getOrganizations(request: Request): Promise<Responder> {
     const user = (await this.authService.getUser(request))!;
-    const organizations = await this.dbService.views.organization.find({
-      members: { id: user._id }
+    const organizations = await this.Organization.find({
+      members: { 
+        $in: [{ id: user._id! }]
+      }
     }).toArray();
     return jsonResponse({
       status: 200,
@@ -110,7 +116,7 @@ export default class OrganizationController {
   @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(OrganizationAddMembersForm)])
   async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationAddMembersForm): Promise<Responder> {
     const user = await this.authService.getUser(request) as IUser;
-    const organization = await this.dbService.collections.organization.findOne(idForm.cleanedData) as IOrganization;
+    const organization = await this.Organization.findOne(idForm.cleanedData) as IOrganization;
     if(!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
@@ -148,17 +154,17 @@ export default class OrganizationController {
     }
     organization.members = [];
     for(let id of set) organization.members.push({ id });
-    await this.dbService.collections.organization.updateOne({ _id: organization._id }, organization);
+    await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,
-      data: await this.dbService.views.organization.findOne({ _id: organization._id })
+      data: await this.Organization.findOne({ _id: organization._id })
     });
   }
 
   @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(OrganizationMembersForm)])
   async removeMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm) {
     const user = await this.authService.getUser(request) as IUser;
-    const organization = await this.dbService.collections.organization.findOne({ _id: idForm.cleanedData.id }) as IOrganization;
+    const organization = await this.Organization.findOne({ _id: idForm.cleanedData.id }) as IOrganization;
     if(!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
@@ -183,10 +189,10 @@ export default class OrganizationController {
       currentSet.delete(id);
     }
     for(let id of currentSet) organization.members.push({ id });
-    await this.dbService.collections.organization.updateOne({ _id: organization._id }, organization);
+    await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,
-      data: await this.dbService.views.organization.findOne({ _id: organization._id })
+      data: await this.Organization.findOne({ _id: organization._id })
     });
   }
 }

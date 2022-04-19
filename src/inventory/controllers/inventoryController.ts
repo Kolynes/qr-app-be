@@ -1,17 +1,18 @@
 import { Request } from "express";
-import { ObjectId } from "mongodb";
+import { Collection, ObjectId } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService } from "../../auth/types";
 import { IBatch } from "../../batches/types";
 import { ObjectIDForm } from "../../common/forms";
+import { collection } from "../../database";
 import { IDBService } from "../../database/types";
-import { EServices } from "../../types";
+import { ECollections, EServices } from "../../types";
 import { Controller, Delete, Get, Patch, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { FolderCreateForm, FolderUpdateForm, ItemCreateForm, ItemUpdateForm } from "../forms";
-import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IQRService } from "../types";
+import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IItem, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
 export default class InventoryController {
@@ -24,8 +25,11 @@ export default class InventoryController {
   @service(EServices.database)
   private dbService!: IDBService;
 
+  @collection(ECollections.inventory)
+  private Inventory!: Collection<IDirectoryLike>;
+
   async getValidDirectoryOrErrorResponse(id: ObjectId, request: Request): Promise<IDirectoryLikeView | Responder> {
-    const directory = await this.dbService.views.inventory.findOne({ _id: id }) as IDirectoryLikeView;
+    const directory = await this.Inventory.findOne({ _id: id }) as IDirectoryLikeView;
     if (!directory) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Directory not found")
@@ -47,9 +51,10 @@ export default class InventoryController {
       folder,
       directoryType: EDirectoryType.item,
       batch: batch._id,
-      organization
+      organization,
+      createDate: new Date()
     } as IDirectoryLike);
-    const inventoryInsertResult = await this.dbService.collections.inventory.insertMany(items);
+    const inventoryInsertResult = await this.Inventory.insertMany(items);
     let insertedItems = [];
     for (let i in inventoryInsertResult.insertedIds) {
       insertedItems.push({ id: inventoryInsertResult.insertedIds[i] });
@@ -78,9 +83,10 @@ export default class InventoryController {
       folder,
       organization,
       color,
-      directoryType: EDirectoryType.folder
+      directoryType: EDirectoryType.folder,
+      createDate: new Date()
     } as IDirectoryLike;
-    const result = await this.dbService.collections.inventory.insertOne(newFolder);
+    const result = await this.Inventory.insertOne(newFolder);
     newFolder._id = result.insertedId;
     return jsonResponse({
       status: 201,
@@ -98,7 +104,7 @@ export default class InventoryController {
     if (result instanceof Function) return result;
     else return jsonResponse({
       status: 200,
-      data: await this.dbService.views.inventory.findOne(result)
+      data: result
     });
   }
 
@@ -112,7 +118,7 @@ export default class InventoryController {
     });
     return jsonResponse({
       status: 200,
-      data: await this.dbService.views.inventory.find({
+      data: await this.Inventory.find({
         organization: id,
         deleteDate: undefined
       }).toArray() as IDirectoryLikeView[]
@@ -124,9 +130,9 @@ export default class InventoryController {
     const { id } = form.cleanedData;
     const result = await this.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
-    await this.dbService.collections.inventory.updateOne(
+    await this.Inventory.updateOne(
       { _id: result._id }, 
-      { deleteDate: new Date().toISOString()}
+      { deleteDate: new Date()}
     );
     return jsonResponse({ status: 200 });
   }
@@ -140,7 +146,7 @@ export default class InventoryController {
       status: 400,
       error: new JsonResponseError("This is not a folder")
     })
-    await this.dbService.collections.inventory.updateOne({ _id: result._id }, folderUpdateForm.cleanedData);
+    await this.Inventory.updateOne({ _id: result._id }, folderUpdateForm.cleanedData);
     return jsonResponse({
       status: 200,
       data: {
@@ -159,18 +165,18 @@ export default class InventoryController {
       status: 400,
       error: new JsonResponseError("This is not an item")
     })
-    await this.dbService.collections.inventory.updateOne(
-      { _id: result._id }, 
-      { 
+    this.Inventory.updateOne(
+      { _id: result._id },
+      {
         item: {
           ...result.item,
           ...itemUpdateForm.cleanedData
-        } 
+        } as IItem
       }
     );
     return jsonResponse({
       status: 200,
-      data: await this.dbService.views.inventory.findOne({ _id: result._id })
+      data: await this.Inventory.findOne({ _id: result._id })
     });
   }
 

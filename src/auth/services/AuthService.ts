@@ -1,4 +1,4 @@
-import { EServices, IIndexable } from "../../types";
+import { ECollections, EServices, IIndexable } from "../../types";
 import Service, { serviceClass } from "../../utils/services/Service";
 import { IAuthService, IUser } from "../types";
 import jwt, { JwtPayload } from "jsonwebtoken";
@@ -7,12 +7,16 @@ import { Request } from "express";
 import bcrypt from "bcrypt";
 import { service } from "../../utils/services/ServiceProvider";
 import { IDBService } from "../../database/types";
-import { ObjectId } from "mongodb";
+import { Collection, ObjectId } from "mongodb";
+import { collection } from "../../database";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
   @service(EServices.database)
   private dbService!: IDBService;
+
+  @collection(ECollections.user)
+  private User!: Collection<IUser>;
 
   
   private getkey(): [string | Buffer, jwt.Algorithm] {
@@ -58,7 +62,7 @@ class AuthService extends Service implements IAuthService {
     if(!token) return undefined;
     const data = await this.verifyToken(token);
     if(!data) return undefined;
-    return await this.dbService.collections.user.findOne({ _id: data.id }) as IUser;
+    return await this.dbService.collections.user.findOne({ _id: new ObjectId(data.id) }) as IUser;
   }
 
   extractToken(request: Request): string | undefined {

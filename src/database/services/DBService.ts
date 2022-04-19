@@ -18,7 +18,6 @@ class DBService extends Service implements IDBService {
   
   async connect(): Promise<MongoClient> {
     if(!this.connection) {
-      console.log(process.env.TYPEORM_URL!)
       this.connection = await new MongoClient(process.env.TYPEORM_URL!, { useUnifiedTopology: true }).connect();
       this._db = this.connection.db();
       for(let collection in this._collections) 
