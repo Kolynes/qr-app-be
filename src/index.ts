@@ -18,7 +18,9 @@ import { EServices } from "./types";
 
 (async function() {
   const dbService = ServiceProvider.getInstance().getService<IDBService>(EServices.database);
-  await dbService.connect();
+  try {
+    await dbService.connect();
+  } catch(e) {}
   const app = express();
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
