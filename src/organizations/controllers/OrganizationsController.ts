@@ -46,9 +46,10 @@ export default class OrganizationController {
     });
     const organization = form.cleanedData as IOrganization;
     organization.owner = user._id!;
-    organization.members = [{ id: user._id! }]
+    organization.members = [user._id!]
     await this.Organization.insertOne(organization);
-    const organizationView = await this.Organization.findOne(organization._id);
+    console.log(organization);
+    const organizationView = await this.Organization.findOne(organization._id!);
     return jsonResponse({ 
       status: 201,
       data: organizationView
@@ -85,7 +86,7 @@ export default class OrganizationController {
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
-    const isMember = await this.authService.isMember(organization._id, request);
+    const isMember = await this.authService.isMember(organization._id!, request);
     if(!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
@@ -104,7 +105,7 @@ export default class OrganizationController {
     const user = (await this.authService.getUser(request))!;
     const organizations = await this.Organization.find({
       members: { 
-        $in: [{ id: user._id! }]
+        $in: [user._id!]
       }
     }).toArray();
     return jsonResponse({
@@ -121,13 +122,13 @@ export default class OrganizationController {
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
-    const owner = await this.authService.getOwnerFromOrganization(organization._id);
+    const owner = await this.authService.getOwnerFromOrganization(organization._id!);
     if(user._id != owner) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
     const { newMembers } = membersForm.cleanedData;
-    const set = new Set(organization.members.map(member => member.id));
+    const set = new Set(organization.members);
     for(let newMember of newMembers as INewMember[]) {
       let memberUser = await this.dbService.collections.user.findOne({ email: newMember.email }) as IUser;
       if(!memberUser) {
@@ -153,7 +154,7 @@ export default class OrganizationController {
       ).catch(console.error);
     }
     organization.members = [];
-    for(let id of set) organization.members.push({ id });
+    for(let id of set) organization.members.push(id);
     await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,
@@ -169,14 +170,14 @@ export default class OrganizationController {
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
-    const owner = await this.authService.getOwnerFromOrganization(organization._id);
+    const owner = await this.authService.getOwnerFromOrganization(organization._id!);
     if(user._id != owner) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
     const { members } = membersForm.cleanedData;
     const removeSet = new Set(members as ObjectId[]);
-    const currentSet = new Set(organization.members.map(member => member.id));
+    const currentSet = new Set(organization.members);
     organization.members = [];
     for(let id of removeSet) {
       if(id == owner) return jsonResponse({
@@ -188,7 +189,7 @@ export default class OrganizationController {
       });
       currentSet.delete(id);
     }
-    for(let id of currentSet) organization.members.push({ id });
+    for(let id of currentSet) organization.members.push(id);
     await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,

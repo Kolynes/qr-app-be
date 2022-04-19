@@ -5,15 +5,15 @@ import { IDates } from "../common/models";
 export interface IOrganization extends IDates {
   name: string,
   owner: ObjectId,
-  members: { id: ObjectId }[],
-  _id: ObjectId
+  members: ObjectId[],
+  _id?: ObjectId
 }
 
 export interface IOrganizationView extends IDates {
   name: string,
   owner: ObjectId,
   members: IUserView[],
-  _id: ObjectId
+  _id?: ObjectId
 }
 
 export interface INewMember {
