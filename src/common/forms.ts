@@ -7,7 +7,7 @@ export class ObjectIDForm extends Form {
   checkObjectID(id: string) {
     requiredLengthRule(id, 24, 24);
     try {
-      this.cleanedData.id = ObjectId(id);
+      this.cleanedData.id = new ObjectId(id);
     } catch (e) {
       throw new ValidationError((e as Object).toString());
     }
@@ -19,7 +19,7 @@ export class OrganizationIdForm extends Form {
   checkOrganizationId(organization: string) {
     requiredLengthRule(organization, 24, 24);
     try {
-      this.cleanedData.organization = ObjectId(organization);
+      this.cleanedData.organization = new ObjectId(organization);
     } catch (e) {
       throw new ValidationError((e as Object).toString());
     }

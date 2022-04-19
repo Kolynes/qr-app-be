@@ -1,3 +1,4 @@
+import { mix } from "class-mixins";
 import Form, { rule, ValidationError } from "../utils/form";
 import { emailRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
@@ -50,7 +51,8 @@ export class RecoverAccountForm extends Form {
   }
 }
 
-export class ResetPasswordForm extends RecoverAccountForm {
+@mix(RecoverAccountForm)
+export class ResetPasswordForm extends Form {
   @rule("code")
   checkCode(code: string) {
     requiredLengthRule(code, 6, 6);

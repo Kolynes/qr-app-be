@@ -1,24 +1,26 @@
 import { Request } from "express";
-import { ObjectId } from "mongodb";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
-import { DirectoryLikeEntity } from "../../inventory/entities/DirectoryLikeEntity";
+import { IDBService } from "../../database/types";
 import { EServices } from "../../types";
 import { Controller, Delete, Get } from "../../utils/controller";
 import { useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { BatchEntity } from "../entities/BatchEntity";
+import { IBatch } from "../types";
 
 @Controller()
 export default class BatchesController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
+  @service(EServices.database)
+  private dbService!: IDBService;
+
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = (await BatchEntity.findOne(id)) as BatchEntity;
+    const batch = await this.dbService.views.batch.findOne({ _id: id }) as IBatch;
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
@@ -30,14 +32,14 @@ export default class BatchesController {
     })
     return jsonResponse({
       status: 200,
-      data: await batch.toDto()
+      data: batch
     })
   }
 
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = (await BatchEntity.findOne(id)) as BatchEntity;
+    const batch = await this.dbService.collections.batch.findOne({ _id: id }) as IBatch;
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
@@ -47,8 +49,14 @@ export default class BatchesController {
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     })
-    DirectoryLikeEntity.softRemove(batch.items.map(item => ObjectId(item.id)));
-    await batch.softRemove();
+    await this.dbService.collections.inventory.updateMany(
+      { _id: { $in: batch.items.map(item => item.id) }}, 
+      { deleteDate: new Date().toISOString() }
+    );
+    await this.dbService.collections.batch.updateOne(
+      { _id: batch._id }, 
+      { deleteDate: new Date().toISOString() }
+    );
     return jsonResponse({ status: 200 })
   }
 }

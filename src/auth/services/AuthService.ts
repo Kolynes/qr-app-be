@@ -1,14 +1,19 @@
 import { EServices, IIndexable } from "../../types";
 import Service, { serviceClass } from "../../utils/services/Service";
-import { IAuthService } from "../types";
+import { IAuthService, IUser } from "../types";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { readFileSync } from "fs";
 import { Request } from "express";
-import { UserEntity } from "../entities/UserEntity";
-import { OrganizationEntity } from "../../organizations/entities/OrganizationEntity";
+import bcrypt from "bcrypt";
+import { service } from "../../utils/services/ServiceProvider";
+import { IDBService } from "../../database/types";
+import { ObjectId } from "mongodb";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
+  @service(EServices.database)
+  private dbService!: IDBService;
+
   
   private getkey(): [string | Buffer, jwt.Algorithm] {
     if(process.env.PRIVATE_KEY && process.env.KEY_ALGORITHM) 
@@ -48,12 +53,12 @@ class AuthService extends Service implements IAuthService {
     }
   }
 
-  async getUser(request: Request,): Promise<UserEntity | undefined> {
+  async getUser(request: Request,): Promise<IUser | undefined> {
     const token = this.extractToken(request);
     if(!token) return undefined;
     const data = await this.verifyToken(token);
     if(!data) return undefined;
-    return (await UserEntity.findOne(data.id));
+    return await this.dbService.collections.user.findOne({ _id: data.id }) as IUser;
   }
 
   extractToken(request: Request): string | undefined {
@@ -64,18 +69,28 @@ class AuthService extends Service implements IAuthService {
     return token;
   }
 
-  async getOwnerFromOrganization(organizationId: string): Promise<string | undefined> {
-    const organization = await OrganizationEntity.findOne(organizationId);
+  async getOwnerFromOrganization(organizationId: ObjectId): Promise<string | undefined> {
+    const organization = await this.dbService.collections.organization.findOne(organizationId);
     if(!organization) return undefined;
     return organization.owner;
   }
 
-  async isMember(organizationId: string, request: Request): Promise<boolean> {
-    const organization = await OrganizationEntity.findOne(organizationId);
+  async isMember(organizationId: ObjectId, request: Request): Promise<boolean> {
+    const organization = await this.dbService.collections.organization.findOne(organizationId);
     if(!organization) return false;
     const user = await this.getUser(request);
     if(!user) return false;
-    if(organization.members.includes({ id: user.id.toString() })) return false;
+    if(organization.members.includes({ id: user._id })) return false;
     return true;
+  }
+
+  async setPassword(user: IUser, newPassword: string) {
+    let salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+  }
+
+  async checkPassword(user: IUser, candidate: string): Promise<boolean> {
+    const result = await bcrypt.compare(candidate, user.password)
+    return result;
   }
 }

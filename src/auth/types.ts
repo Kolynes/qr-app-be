@@ -1,15 +1,39 @@
 import { Request } from "express-serve-static-core";
 import { JwtPayload } from "jsonwebtoken";
+import { ObjectId } from "mongodb";
+import { IDates } from "../common/models";
 import { IIndexable } from "../types";
 import Service from "../utils/services/Service";
-import { UserEntity } from "./entities/UserEntity";
 
 export interface IAuthService extends Service {
   generateToken(data: IIndexable): Promise<string>;
   generateTokenHeader(data: IIndexable): Promise<IIndexable>;
   verifyToken(token: string): Promise<JwtPayload | undefined>;
-  getUser(request: Request): Promise<UserEntity | undefined>;
+  getUser(request: Request): Promise<IUser | undefined>;
   extractToken(request: Request): string | undefined;
-  getOwnerFromOrganization(organizationId: string): Promise<string | undefined>;
-  isMember(organizationId: string, request: Request): Promise<boolean>;
+  getOwnerFromOrganization(organizationId: ObjectId): Promise<string | undefined>;
+  isMember(organizationId: ObjectId, request: Request): Promise<boolean>;
+  checkPassword(user: IUser, candidate: string): Promise<boolean>;
+  setPassword(user: IUser, newPassword: string): Promise<void>;
+}
+
+export interface IUser extends IDates {
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  _id?: ObjectId
+}
+
+export interface IVerification extends IDates {
+  userId: ObjectId,
+  code: string,
+  _id?: ObjectId
+}
+
+export interface IUserView extends IDates {
+  firstName: string,
+  lastName: string,
+  email: string,
+  _id: ObjectId
 }

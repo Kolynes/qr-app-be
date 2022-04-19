@@ -23,6 +23,7 @@ export default abstract class Form {
   private rules: IIndexable<Function[]> = {};
   readonly cleanedData: IIndexable<any> = {};
   readonly blacklist: string[] = [];
+  readonly whitelist: string[] = [];
 
   constructor(
     private readonly data: IIndexable<any>
@@ -40,14 +41,13 @@ export default abstract class Form {
 
   validate(): boolean {
     let result = true;
-    for (let blacklistKey of this.blacklist)
-      for (let key in this.data)
-        if (blacklistKey === key) {
-          if (this.errors[key] === undefined)
-            this.errors[key] = [];
-          this.errors[key].push("This field is not accepted");
-          result = result && false;
-        }
+    for (let key in this.data)
+      if (this.blacklist.indexOf(key) != -1 || (this.whitelist.indexOf(key) == -1 && this.whitelist.length > 0)) {
+        if (this.errors[key] === undefined)
+          this.errors[key] = [];
+        this.errors[key].push("This field is not accepted");
+        result = result && false;
+      }
     for (let item in this.rules)
       for (let rule in this.rules[item]) {
         try {

@@ -1,6 +1,14 @@
-import Service from "../utils/services/Service";
-import { BatchEntity } from "./entities/BatchEntity";
+import { ObjectId } from "mongodb";
+import { IItem } from "../inventory/types";
 
-export interface IBatchesService extends Service {
-  createBatch(items: string[]): Promise<BatchEntity>;
+export interface IBatch {
+  organization: ObjectId;
+  items: { id : ObjectId }[];
+  _id: ObjectId;
+}
+
+export interface IBatchView {
+  organization: ObjectId;
+  items: IItem[];
+  _id: ObjectId;
 }

@@ -1,3 +1,4 @@
+import { mix } from "class-mixins";
 import { ObjectId } from "mongodb";
 import Form, { rule, ValidationError } from "../utils/form";
 import { emailRule, notNullRule, requiredLengthRule } from "../utils/form/rules";
@@ -33,7 +34,8 @@ export class OrganizationAddMembersForm extends Form {
   }
 }
 
-export class OrganizationCreateForm extends OrganizationMembersForm {
+@mix(OrganizationMembersForm)
+export class OrganizationCreateForm extends Form {
   @rule("name")
   checkName(name: string) {
     requiredLengthRule(name, 3);

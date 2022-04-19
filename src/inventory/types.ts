@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb";
 import { Column } from "typeorm";
 import Service from "../utils/services/Service";
 
@@ -9,7 +10,7 @@ export enum EQRCodeType {
 }
 
 export interface IQRService extends Service {
-  createQRCode(id: string, ownerId: string): Promise<string>;
+  createQRCode(id: ObjectId, ownerId: ObjectId): Promise<string>;
 }
 
 export enum EDirectoryType {
@@ -17,39 +18,38 @@ export enum EDirectoryType {
   item = "item"
 }
 
-export class Item {
-
-  @Column()
-  type!: EQRCodeType;
-
-  @Column()
-  totalWeight!: number;
-
-  @Column()
-  geneticName!: string;
-  
-  @Column()
+export interface IItem {
+  type: EQRCodeType;
+  totalWeight: number;
+  geneticName: string;
   history?: string;
-  
-  @Column()
   tags?: string[];
-  
-  @Column()
   cooked?: number;
-  
-  @Column()
   unitOfMeasure?: string;
-  
-  @Column()
   sterilizationDevice?: string;
-  
-  @Column()
   comments?: string;
-  
-  @Column()
   ingredientsByWeight?: string;
-  
-  @Column()
   parent?: string;
-  
+}
+
+export interface IDirectoryLike {
+  _id?: ObjectId
+  organization: ObjectId,
+  directoryType: EDirectoryType,
+  item?: IItem,
+  batch?: ObjectId,
+  name?: string,
+  color?: string,
+  items?: ObjectId[]
+}
+
+export interface IDirectoryLikeView {
+  organization: ObjectId,
+  directoryType: EDirectoryType,
+  item?: IItem,
+  batch?: ObjectId,
+  name?: string,
+  color?: string,
+  items?: IDirectoryLike[],
+  _id?: ObjectId
 }

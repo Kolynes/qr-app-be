@@ -1,15 +1,16 @@
 import { Request } from "express";
 import { EEmailTemplate, IMailService } from "../../mail/types";
-import { EServices } from "../../types";
+import { ECollections, EServices } from "../../types";
 import CodeGenerator from "../../utils/code-generator";
 import { Controller, Post } from "../../utils/controller";
 import { useForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { UserEntity } from "../entities/UserEntity";
-import { VerificationEntity } from "../entities/VerificationEntity";
 import { LoginForm, RecoverAccountForm, ResetPasswordForm, SignupForm } from "../forms";
-import { IAuthService } from "../types";
+import { IAuthService, IUser, IVerification } from "../types";
+import { IDBService } from "../../database/types";
+import { Collection } from "mongodb";
+import { collection } from "../../database";
 
 @Controller()
 export default class AuthController {
@@ -19,44 +20,50 @@ export default class AuthController {
   @service(EServices.mail)
   private mailService!: IMailService;
 
+  @service(EServices.database)
+  private dbService!: IDBService;
+
+  @collection(ECollections.user)
+  private User!: Collection<IUser>;
+
   @Post("/login", [useForm(LoginForm)])
   async login(request: Request, form: LoginForm): Promise<Responder> {
-    const user = await UserEntity.findOne({
+    const user = await this.User.findOne({
       email: form.cleanedData.email,
       deleteDate: undefined
-    });
+    }) as IUser;
     if (!user)
       return jsonResponse({
         status: 404,
         error: new JsonResponseError("User not found")
       });
-    if (!await user.checkPassword(form.cleanedData.password))
+    if (!await this.authService.checkPassword(user, form.cleanedData.password))
       return jsonResponse({
         status: 400,
         error: new JsonResponseError("Invalid credentials")
       });
     return jsonResponse({
       status: 200,
-      data: await user.toDto(),
-      headers: await this.authService.generateTokenHeader({ id: user.id })
+      data: user,
+      headers: await this.authService.generateTokenHeader({ id: user._id })
     });
   }
 
   @Post("/signup", [useForm(SignupForm)])
   async signUp(request: Request, form: SignupForm): Promise<Responder> {
     try {
-      const user = UserEntity.create(form.cleanedData);
-      await user.setPassword(form.cleanedData.password);
-      await user.save();
+      const user = form.cleanedData as IUser;
+      await this.authService.setPassword(user, form.cleanedData.password);
+      await this.User.insertOne(user);
       this.mailService.sendMail(
         EEmailTemplate.signUpNote, 
-        await user.toDto(), 
+        user, 
         user.email
       );
       return jsonResponse({
         status: 201,
-        data: await user.toDto(),
-        headers: await this.authService.generateTokenHeader({ id: user.id })
+        data: user,
+        headers: await this.authService.generateTokenHeader({ id: user._id })
       });
     } catch (e) {
       console.log(e)
@@ -75,20 +82,22 @@ export default class AuthController {
   @Post("/recover_account", [useForm(RecoverAccountForm)])
   async recoverAccountForm(request: Request, form: RecoverAccountForm): Promise<Responder> {
     const { email } = form.cleanedData;
-    const user = await UserEntity.findOne({ email });
+    const user = await this.User.findOne({ email });
     if(!user) return jsonResponse({
       status: 404, 
       error: new JsonResponseError("This email does not belong to any account.")
     });
-    let verificationEntity = await VerificationEntity.findOne({ userId: user.id.toString() });
-    if(!verificationEntity) verificationEntity = VerificationEntity.create({ 
-      userId: user.id.toString(), 
-      code: CodeGenerator.generateCode(6).toUpperCase() 
-    });
-    await verificationEntity.save();
+    let verification = await this.dbService.collections.verification.findOne({ userId: user._id }) as IVerification;
+    if(!verification){
+      verification = {
+        userId: user._id, 
+        code: CodeGenerator.generateCode(6).toUpperCase()
+      } as IVerification;
+      await this.dbService.collections.verification.insertOne(verification);
+    } 
     this.mailService.sendMail(
       EEmailTemplate.passwordRecoveryCode, 
-      { code: verificationEntity.code }, 
+      { code: verification.code }, 
       email
     );
     return jsonResponse({status: 201});
@@ -97,22 +106,22 @@ export default class AuthController {
   @Post("/reset_password", [useForm(ResetPasswordForm)])
   async resetPassword(request: Request, form: ResetPasswordForm): Promise<Responder> {
     const { code, email, newPassword } = form.cleanedData;
-    const user = await UserEntity.findOne({ email });
+    const user = await this.User.findOne({ email }) as IUser;
     if(!user) return jsonResponse({
       status: 404, 
       error: new JsonResponseError("This email does not belong to any account.")
     });
-    const verificationEntity = await VerificationEntity.findOne({ code, userId: user.id.toString() });
-    if(!verificationEntity) return jsonResponse({
+    const verification = await this.dbService.collections.verification.findOne({ code, userId: user._id });
+    if(!verification) return jsonResponse({
       status: 404, 
       error: new JsonResponseError("This code is invalid.")
     });
-    user.setPassword(newPassword);
-    await user.save();
-    await VerificationEntity.delete(verificationEntity);
+    await this.authService.setPassword(user, newPassword);
+    await this.User.updateOne({ _id: user._id }, user);
+    await this.dbService.collections.verification.deleteOne(verification._id);
     return jsonResponse({
       status: 200,
-      headers: await this.authService.generateTokenHeader({ id: user.id })
+      headers: await this.authService.generateTokenHeader({ id: user._id })
     });
   }
 } 
