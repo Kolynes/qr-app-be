@@ -100,7 +100,7 @@ export default class OrganizationController {
 
   @Get()
   async getOrganizations(request: Request): Promise<Responder> {
-    const user = (await this.authService.getUser(request))!;
+    const user = await this.authService.getUser(request) as IUser;
     const organizations = await this.Organization.find({
       members: { 
         $in: [user._id!]
