@@ -135,6 +135,7 @@ export default class InventoryController {
         directoryType: EDirectoryType.folder,
         createDate: new Date()
       } as IDirectoryLike;
+      await this.Inventory.insertOne(newFolder);
       await this.Inventory.updateOne(
         { _id: parentFolderResult.id },
         {
@@ -146,7 +147,6 @@ export default class InventoryController {
           }
         }
       );
-      await this.Inventory.insertOne(newFolder);
       return jsonResponse({
         status: 201,
         data: {
