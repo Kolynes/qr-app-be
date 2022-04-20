@@ -40,10 +40,10 @@ export default class OrganizationController {
     const user = await this.authService.getUser(request) as IUser;
     const { name } = form.cleanedData;
     const result = await this.Organization.count({
-      owner: user._id, 
-      name 
+      owner: user._id,
+      name
     });
-    if(result > 0) return jsonResponse({
+    if (result > 0) return jsonResponse({
       status: 400,
       error: new JsonResponseError(
         "Invalid parameters",
@@ -53,36 +53,39 @@ export default class OrganizationController {
     const organization = form.cleanedData as IOrganization;
     organization.owner = user._id!;
     organization.members = [user._id!]
+    await this.Organization.insertOne(organization);
     const rootFolder = await this.Inventory.insertOne({
       organization: organization._id!,
       directoryType: EDirectoryType.folder,
       createDate: new Date(),
     });
-    organization.rootFolder = rootFolder.insertedId;
-    await this.Organization.insertOne(organization);
-    return jsonResponse({ 
+    await this.Organization.updateOne(
+      { _id: organization._id },
+      { $set: { rootFolder: rootFolder.insertedId } }
+    );
+    return jsonResponse({
       status: 201,
       data: await this.OrganizationView.findOne({ id: organization._id })
     });
   }
 
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
-  async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> { 
+  async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
     const user = await this.authService.getUser(request) as IUser;
     const { id } = form.cleanedData;
     const organization = await this.Organization.findOne({ _id: id }) as IOrganization;
-    if(!organization) return jsonResponse({
+    if (!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
     const owner = await this.authService.getOwnerFromOrganization(id);
     console.log(user._id, owner);
-    if(!user._id!.equals(owner!)) return jsonResponse({
+    if (!user._id!.equals(owner!)) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
     await this.Organization.updateOne(
-      { _id: organization._id}, 
+      { _id: organization._id },
       { $set: { deleteDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
@@ -91,12 +94,12 @@ export default class OrganizationController {
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
     const organization = await this.OrganizationView.findOne(form.cleanedData) as IOrganizationView;
-    if(!organization) return jsonResponse({
+    if (!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
     const isMember = await this.authService.isMember(organization.id!, request);
-    if(!isMember) return jsonResponse({
+    if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
@@ -113,7 +116,7 @@ export default class OrganizationController {
     const organizations = await this.OrganizationView.find({
       members: {
         $elemMatch: { id: user._id! }
-      } 
+      }
     }).toArray();
     return jsonResponse({
       status: 200,
@@ -125,34 +128,34 @@ export default class OrganizationController {
   async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationAddMembersForm): Promise<Responder> {
     const user = await this.authService.getUser(request) as IUser;
     const organization = await this.Organization.findOne(idForm.cleanedData) as IOrganization;
-    if(!organization) return jsonResponse({
+    if (!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
     const owner = await this.authService.getOwnerFromOrganization(organization._id!);
-    if(user._id != owner) return jsonResponse({
+    if (user._id != owner) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
     const { newMembers } = membersForm.cleanedData;
     const set = new Set(organization.members);
-    for(let newMember of newMembers as INewMember[]) {
+    for (let newMember of newMembers as INewMember[]) {
       let memberUser = await this.User.findOne({ email: newMember.email }) as IUser;
-      if(!memberUser) {
+      if (!memberUser) {
         const password = CodeGenerator.generateCode(8);
         await this.authService.setPassword(
-          newMember as IUser, 
+          newMember as IUser,
           password
         );
         await this.User.insertOne(newMember as IUser);
         memberUser = newMember as IUser;
         this.mailService.sendMail(
           EEmailTemplate.newUserMemberWelcomeNote,
-          { password, ...newMember }, 
+          { password, ...newMember },
           newMember.email
         ).catch(console.error);
       }
-      if(set.has(memberUser._id!)) continue;
+      if (set.has(memberUser._id!)) continue;
       set.add(memberUser._id!);
       this.mailService.sendMail(
         EEmailTemplate.memberWelcomeNote,
@@ -161,9 +164,9 @@ export default class OrganizationController {
       ).catch(console.error);
     }
     organization.members = [];
-    for(let id of set) organization.members.push(id);
+    for (let id of set) organization.members.push(id);
     await this.Organization.updateOne({ _id: organization._id }, organization);
-    return jsonResponse({ 
+    return jsonResponse({
       status: 200,
       data: await this.OrganizationView.findOne({ id: organization._id })
     });
@@ -173,12 +176,12 @@ export default class OrganizationController {
   async removeMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm) {
     const user = await this.authService.getUser(request) as IUser;
     const organization = await this.Organization.findOne({ _id: idForm.cleanedData.id }) as IOrganization;
-    if(!organization) return jsonResponse({
+    if (!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
     const owner = await this.authService.getOwnerFromOrganization(organization._id!);
-    if(user._id != owner) return jsonResponse({
+    if (user._id != owner) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
@@ -186,8 +189,8 @@ export default class OrganizationController {
     const removeSet = new Set(members as ObjectId[]);
     const currentSet = new Set(organization.members);
     organization.members = [];
-    for(let id of removeSet) {
-      if(id == owner) return jsonResponse({
+    for (let id of removeSet) {
+      if (id == owner) return jsonResponse({
         status: 400,
         error: new JsonResponseError(
           "Invalid parameters",
@@ -196,9 +199,9 @@ export default class OrganizationController {
       });
       currentSet.delete(id);
     }
-    for(let id of currentSet) organization.members.push(id);
+    for (let id of currentSet) organization.members.push(id);
     await this.Organization.updateOne({ _id: organization._id }, organization);
-    return jsonResponse({ 
+    return jsonResponse({
       status: 200,
       data: await this.OrganizationView.findOne({ id: organization._id })
     });

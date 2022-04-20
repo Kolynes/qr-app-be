@@ -67,6 +67,15 @@ export default class InventoryController {
     const { numberOfItems, folder, organization } = form.cleanedData;
     const result = await this.getValidOrganizationOrResponse(organization, request);
     if (result instanceof Function) return result;
+    const parentFolderResult = await this.getValidDirectoryOrErrorResponse(folder || result.rootFolder, request);
+    if (parentFolderResult instanceof Function) return parentFolderResult;
+    if (parentFolderResult.directoryType != EDirectoryType.folder) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError(
+        "Invalid parameters",
+        { folder: ["This is not a valid folder"] }
+      )
+    })
     const batch = { organization } as IBatch;
     const items = [];
     for (let i = 0; i < numberOfItems; i++) items.push({
@@ -78,6 +87,17 @@ export default class InventoryController {
     } as IDirectoryLike);
     await this.Inventory.insertMany(items);
     batch.items = items.map(item => item._id!);
+    await this.Inventory.updateOne(
+      { _id: parentFolderResult.id },
+      {
+        $set: {
+          items: [
+            ...parentFolderResult.items!.map(item => item._id!),
+            ...batch.items
+          ]
+        }
+      }
+    );
     await this.Batch.insertOne(batch);
     const itemViews = await this.InventoryView.find({ id: { $in: items.map(item => item._id) } }).toArray();
     return jsonResponse({
@@ -98,6 +118,15 @@ export default class InventoryController {
       const { name, folder, organization, color } = form.cleanedData;
       const result = await this.getValidOrganizationOrResponse(organization, request);
       if (result instanceof Function) return result;
+      const parentFolderResult = await this.getValidDirectoryOrErrorResponse(folder || result.rootFolder, request);
+      if (parentFolderResult instanceof Function) return parentFolderResult;
+      if (parentFolderResult.directoryType != EDirectoryType.folder) return jsonResponse({
+        status: 404,
+        error: new JsonResponseError(
+          "Invalid parameters",
+          { folder: ["This is not a valid folder"] }
+        )
+      })
       const newFolder = {
         name,
         folder: folder || result.rootFolder,
@@ -106,8 +135,18 @@ export default class InventoryController {
         directoryType: EDirectoryType.folder,
         createDate: new Date()
       } as IDirectoryLike;
+      await this.Inventory.updateOne(
+        { _id: parentFolderResult.id },
+        {
+          $set: {
+            items: [
+              newFolder._id!,
+              ...parentFolderResult.items!.map(item => item._id!),
+            ]
+          }
+        }
+      );
       await this.Inventory.insertOne(newFolder);
-
       return jsonResponse({
         status: 201,
         data: {

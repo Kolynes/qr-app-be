@@ -8,7 +8,7 @@
       "start": "cd build && node src/index.js",
       "build": "tsc||true",
       "migrate:create": "sh -c 'ts-node node_modules/.bin/migrate-mongo create $0 -f migrate-mongo-config.ts' ",
-      "migrate:status": "ts-node node_modules/.bin/migrate-mongo status -f migrate-mongo-config.ts",
+      "migrate:status": "ts-node node_modules/.bin/migrate-mongo status -f migrate-mongo-config.ts ",
       "migrate:undo-last": "ts-node node_modules/.bin/migrate-mongo down -f migrate-mongo-config.ts && npm run migrate:status",
       "migrate": "ts-node node_modules/.bin/migrate-mongo up -f migrate-mongo-config.ts",
       "serve": "nodemon src/index.ts",
