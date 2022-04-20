@@ -141,7 +141,7 @@ export default class InventoryController {
       status: 200,
       data: await this.InventoryView.find({
         organization,
-        folder: result.rootFolder._id,
+        folder: result.rootFolder,
         deleteDate: undefined
       }).toArray() as IDirectoryLikeView[]
     });
