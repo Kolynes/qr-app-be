@@ -3,12 +3,12 @@ import { IItem } from "../inventory/types";
 
 export interface IBatch {
   organization: ObjectId;
-  items: { id : ObjectId }[];
+  items: ObjectId[];
   _id: ObjectId;
 }
 
 export interface IBatchView {
   organization: ObjectId;
   items: IItem[];
-  _id: ObjectId;
+  id: ObjectId;
 }

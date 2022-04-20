@@ -11,7 +11,7 @@ export interface IAuthService extends Service {
   verifyToken(token: string): Promise<JwtPayload | undefined>;
   getUser(request: Request): Promise<IUser | null>;
   extractToken(request: Request): string | undefined;
-  getOwnerFromOrganization(organizationId: ObjectId): Promise<string | undefined>;
+  getOwnerFromOrganization(organizationId: ObjectId): Promise<ObjectId | undefined>;
   isMember(organizationId: ObjectId, request: Request): Promise<boolean>;
   checkPassword(user: IUser, candidate: string): Promise<boolean>;
   setPassword(user: IUser, newPassword: string): Promise<void>;
@@ -35,5 +35,5 @@ export interface IUserView extends IDates {
   firstName: string,
   lastName: string,
   email: string,
-  _id: ObjectId
+  id: ObjectId
 }

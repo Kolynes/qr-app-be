@@ -9,7 +9,7 @@
       "declaration": true, 
       "moduleResolution": "node",
       "outDir": "./build",
-      "rootDir": "./src",
+      "rootDir": "./",
       "esModuleInterop": true,
       "emitDecoratorMetadata": true,
       "experimentalDecorators": true,
@@ -19,7 +19,7 @@
       "skipLibCheck": true 
    },
    "exclude": [
-      "./node_modules",
-      "./build"
+      "node_modules",
+      "build"
     ]
 }

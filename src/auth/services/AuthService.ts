@@ -5,20 +5,18 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { readFileSync } from "fs";
 import { Request } from "express";
 import bcrypt from "bcrypt";
-import { service } from "../../utils/services/ServiceProvider";
-import { IDBService } from "../../database/types";
 import { Collection, ObjectId } from "mongodb";
 import { collection } from "../../database";
+import { IOrganization } from "../../organizations/types";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
-  @service(EServices.database)
-  private dbService!: IDBService;
-
   @collection(ECollections.user)
   private User!: Collection<IUser>;
 
-  
+  @collection(ECollections.organization)
+  private Organization!: Collection<IOrganization>;
+
   private getkey(): [string | Buffer, jwt.Algorithm] {
     if(process.env.PRIVATE_KEY && process.env.KEY_ALGORITHM) 
       return [
@@ -62,7 +60,7 @@ class AuthService extends Service implements IAuthService {
     if(!token) return null;
     const data = await this.verifyToken(token);
     if(!data) return null;
-    return await this.dbService.collections.user.findOne({ _id: new ObjectId(data.id) }) as IUser;
+    return await this.User.findOne({ _id: new ObjectId(data.id) }) as IUser;
   }
 
   extractToken(request: Request): string | undefined {
@@ -73,18 +71,18 @@ class AuthService extends Service implements IAuthService {
     return token;
   }
 
-  async getOwnerFromOrganization(organizationId: ObjectId): Promise<string | undefined> {
-    const organization = await this.dbService.collections.organization.findOne(organizationId);
+  async getOwnerFromOrganization(organizationId: ObjectId): Promise<ObjectId | undefined> {
+    const organization = await this.Organization.findOne(organizationId);
     if(!organization) return undefined;
     return organization.owner;
   }
 
   async isMember(organizationId: ObjectId, request: Request): Promise<boolean> {
-    const organization = await this.dbService.collections.organization.findOne(organizationId);
+    const organization = await this.Organization.findOne(organizationId);
     if(!organization) return false;
     const user = await this.getUser(request);
     if(!user) return false;
-    if(organization.members.includes({ id: user._id })) return false;
+    if(organization.members.includes(user._id!)) return false;
     return true;
   }
 

@@ -3,10 +3,10 @@ import { Collection, ObjectId } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService } from "../../auth/types";
 import { IBatch } from "../../batches/types";
-import { ObjectIDForm } from "../../common/forms";
-import { collection } from "../../database";
-import { IDBService } from "../../database/types";
-import { ECollections, EServices } from "../../types";
+import { ObjectIDForm, OrganizationIdForm } from "../../common/forms";
+import { collection, view } from "../../database";
+import { IOrganization, IOrganizationView } from "../../organizations/types";
+import { ECollections, EServices, EViews } from "../../types";
 import { Controller, Delete, Get, Patch, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
@@ -22,14 +22,20 @@ export default class InventoryController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
-  @service(EServices.database)
-  private dbService!: IDBService;
-
   @collection(ECollections.inventory)
   private Inventory!: Collection<IDirectoryLike>;
 
+  @view(EViews.organization)
+  private OrganizationView!: Collection<IOrganizationView>;
+
+  @view(EViews.inventory)
+  private InventoryView!: Collection<IDirectoryLikeView>;
+
+  @collection(ECollections.batch)
+  private Batch!: Collection<IBatch>;
+
   async getValidDirectoryOrErrorResponse(id: ObjectId, request: Request): Promise<IDirectoryLikeView | Responder> {
-    const directory = await this.Inventory.findOne({ _id: id }) as IDirectoryLikeView;
+    const directory = await this.InventoryView.findOne({ id: id }) as IDirectoryLikeView;
     if (!directory) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Directory not found")
@@ -42,33 +48,44 @@ export default class InventoryController {
     return directory;
   }
 
+  async getValidOrganizationOrResponse(id: ObjectId, request: Request): Promise<IOrganizationView | Responder> {
+    const organization = await this.OrganizationView.findOne({ id });
+    if (!organization) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Organization not found")
+    });
+    const user = await this.authService.getUser(request);
+    if (!user || !user._id!.equals(organization.owner)) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this action")
+    });
+    return organization;
+  }
+
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
+    const result = await this.getValidOrganizationOrResponse(organization, request);
+    if (result instanceof Function) return result;
     const batch = { organization } as IBatch;
     const items = [];
     for (let i = 0; i < numberOfItems; i++) items.push({
-      folder,
+      folder: folder || result.rootFolder,
       directoryType: EDirectoryType.item,
       batch: batch._id,
       organization,
       createDate: new Date()
     } as IDirectoryLike);
-    const inventoryInsertResult = await this.Inventory.insertMany(items);
-    let insertedItems = [];
-    for (let i in inventoryInsertResult.insertedIds) {
-      insertedItems.push({ id: inventoryInsertResult.insertedIds[i] });
-      items[i]._id = inventoryInsertResult.insertedIds[i];
-    }
-    batch.items = insertedItems;
-    const batchInsertResult = await this.dbService.collections.batch.insertOne(batch);
-    batch._id = batchInsertResult.insertedId;
+    await this.Inventory.insertMany(items);
+    batch.items = items.map(item => item._id!);
+    await this.Batch.insertOne(batch);
+    const itemViews = await this.InventoryView.find({ id: { $in: items.map(item => item._id) } }).toArray();
     return jsonResponse({
       status: 201,
       data: {
         batch: batch._id,
-        items: await Promise.all(items.map(async item => ({
-          qrCode: await this.qrCodeService.createQRCode(item._id!, organization),
+        items: await Promise.all(itemViews.map(async item => ({
+          qrCode: await this.qrCodeService.createQRCode(item.id!, organization),
           ...item
         })))
       }
@@ -77,24 +94,31 @@ export default class InventoryController {
 
   @Post("/folders", [useForm(FolderCreateForm)])
   async createFolder(request: Request, form: FolderCreateForm): Promise<Responder> {
-    const { name, folder, organization, color } = form.cleanedData;
-    const newFolder = {
-      name,
-      folder,
-      organization,
-      color,
-      directoryType: EDirectoryType.folder,
-      createDate: new Date()
-    } as IDirectoryLike;
-    const result = await this.Inventory.insertOne(newFolder);
-    newFolder._id = result.insertedId;
-    return jsonResponse({
-      status: 201,
-      data: {
-        qrCode: await this.qrCodeService.createQRCode(newFolder._id!, organization),
-        ...newFolder
-      }
-    });
+    try {
+      const { name, folder, organization, color } = form.cleanedData;
+      const result = await this.getValidOrganizationOrResponse(organization, request);
+      if (result instanceof Function) return result;
+      const newFolder = {
+        name,
+        folder: folder || result.rootFolder,
+        organization,
+        color,
+        directoryType: EDirectoryType.folder,
+        createDate: new Date()
+      } as IDirectoryLike;
+      await this.Inventory.insertOne(newFolder);
+      
+      return jsonResponse({
+        status: 201,
+        data: {
+          qrCode: await this.qrCodeService.createQRCode(newFolder._id!, organization),
+          ...await this.InventoryView.findOne({ id: newFolder._id })
+        }
+      });
+    } catch (e) {
+      console.log(e);
+      return jsonResponse({ status: 400, error: new JsonResponseError((e as any).toString()) })
+    }
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
@@ -108,18 +132,16 @@ export default class InventoryController {
     });
   }
 
-  @Get("/root/:id", [useParamsForm(ObjectIDForm)])
-  async getRootDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
-    const { id } = form.cleanedData;
-    const isMember = await this.authService.isMember(id, request);
-    if (!isMember) return jsonResponse({
-      status: 403,
-      error: new JsonResponseError("You are not authorized to carry out this action")
-    });
+  @Get("/root/:organization", [useParamsForm(OrganizationIdForm)])
+  async getRootDirectory(request: Request, form: OrganizationIdForm): Promise<Responder> {
+    const { organization } = form.cleanedData;
+    const result = await this.getValidOrganizationOrResponse(organization, request);
+    if(result instanceof Function) return result;
     return jsonResponse({
       status: 200,
-      data: await this.Inventory.find({
-        organization: id,
+      data: await this.InventoryView.find({
+        organization,
+        folder: result.rootFolder._id,
         deleteDate: undefined
       }).toArray() as IDirectoryLikeView[]
     });
@@ -131,8 +153,8 @@ export default class InventoryController {
     const result = await this.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
     await this.Inventory.updateOne(
-      { _id: result._id }, 
-      { deleteDate: new Date()}
+      { _id: result.id },
+      { $set: { deleteDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }
@@ -142,17 +164,17 @@ export default class InventoryController {
     const { id } = idForm.cleanedData;
     const result = await this.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
-    if(result.directoryType != EDirectoryType.item) return jsonResponse({
+    if (result.directoryType != EDirectoryType.item) return jsonResponse({
       status: 400,
       error: new JsonResponseError("This is not a folder")
     })
-    await this.Inventory.updateOne({ _id: result._id }, folderUpdateForm.cleanedData);
+    await this.Inventory.updateOne(
+      { _id: result.id }, 
+      { $set: folderUpdateForm.cleanedData }
+    );
     return jsonResponse({
       status: 200,
-      data: {
-        ...result,
-        ...folderUpdateForm.cleanedData
-      }
+      data: await this.InventoryView.findOne({ id: result.id })
     });
   }
 
@@ -161,12 +183,12 @@ export default class InventoryController {
     const { id } = idForm.cleanedData;
     const result = await this.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
-    if(result.directoryType != EDirectoryType.item) return jsonResponse({
+    if (result.directoryType != EDirectoryType.item) return jsonResponse({
       status: 400,
       error: new JsonResponseError("This is not an item")
     })
     this.Inventory.updateOne(
-      { _id: result._id },
+      { _id: result.id },
       {
         item: {
           ...result.item,
@@ -176,7 +198,7 @@ export default class InventoryController {
     );
     return jsonResponse({
       status: 200,
-      data: await this.Inventory.findOne({ _id: result._id })
+      data: await this.Inventory.findOne({ _id: result.id })
     });
   }
 

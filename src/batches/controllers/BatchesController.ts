@@ -1,13 +1,15 @@
 import { Request } from "express";
+import { Collection } from "mongodb";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
+import { collection, view } from "../../database";
 import { IDBService } from "../../database/types";
-import { EServices } from "../../types";
+import { ECollections, EServices, EViews } from "../../types";
 import { Controller, Delete, Get } from "../../utils/controller";
 import { useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { IBatch } from "../types";
+import { IBatch, IBatchView } from "../types";
 
 @Controller()
 export default class BatchesController {
@@ -17,10 +19,16 @@ export default class BatchesController {
   @service(EServices.database)
   private dbService!: IDBService;
 
+  @view(EViews.batch)
+  private BatchView!: Collection<IBatchView>;
+
+  @collection(ECollections.batch)
+  private Batch!: Collection<IBatch>;
+
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = await this.dbService.views.batch.findOne({ _id: id }) as IBatch;
+    const batch = await this.BatchView.findOne({ id });
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
@@ -39,7 +47,7 @@ export default class BatchesController {
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = await this.dbService.collections.batch.findOne({ _id: id }) as IBatch;
+    const batch = await this.Batch.findOne({ _id: id }) as IBatch;
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
@@ -53,9 +61,9 @@ export default class BatchesController {
       { _id: { $in: batch.items.map(item => item.id) }}, 
       { deleteDate: new Date().toISOString() }
     );
-    await this.dbService.collections.batch.updateOne(
+    await this.Batch.updateOne(
       { _id: batch._id }, 
-      { deleteDate: new Date().toISOString() }
+      { $set: { deleteDate: new Date().toISOString() } }
     );
     return jsonResponse({ status: 200 })
   }

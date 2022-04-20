@@ -3,10 +3,10 @@ import { Collection, ObjectId } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IAuthService, IUser } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
-import { collection } from "../../database";
-import { IDBService } from "../../database/types";
+import { collection, view } from "../../database";
+import { EDirectoryType, IDirectoryLike } from "../../inventory/types";
 import { EEmailTemplate, IMailService } from "../../mail/types";
-import { ECollections, EServices } from "../../types";
+import { ECollections, EServices, EViews } from "../../types";
 import CodeGenerator from "../../utils/code-generator";
 import { Controller, Delete, Get, Post, Put } from "../../utils/controller";
 import { useForm, useParamsForm } from "../../utils/form";
@@ -23,11 +23,17 @@ export default class OrganizationController {
   @service(EServices.mail)
   private mailService!: IMailService;
 
-  @service(EServices.database)
-  private dbService!: IDBService;
-
   @collection(ECollections.organization)
   private Organization!: Collection<IOrganization>;
+
+  @view(EViews.organization)
+  private OrganizationView!: Collection<IOrganizationView>;
+
+  @collection(ECollections.inventory)
+  private Inventory!: Collection<IDirectoryLike>;
+
+  @collection(ECollections.user)
+  private User!: Collection<IUser>;
 
   @Post("", [useForm(OrganizationCreateForm)])
   async createOrganization(request: Request, form: OrganizationCreateForm): Promise<Responder> {
@@ -47,16 +53,22 @@ export default class OrganizationController {
     const organization = form.cleanedData as IOrganization;
     organization.owner = user._id!;
     organization.members = [user._id!]
+    const rootFolder = await this.Inventory.insertOne({
+      organization: organization._id!,
+      directoryType: EDirectoryType.folder,
+      createDate: new Date(),
+    });
+    organization.rootFolder = rootFolder.insertedId;
     await this.Organization.insertOne(organization);
     return jsonResponse({ 
       status: 201,
-      data: organization
+      data: await this.OrganizationView.findOne({ id: organization._id })
     });
   }
 
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> { 
-    const user = (await this.authService.getUser(request))!;
+    const user = await this.authService.getUser(request) as IUser;
     const { id } = form.cleanedData;
     const organization = await this.Organization.findOne({ _id: id }) as IOrganization;
     if(!organization) return jsonResponse({
@@ -64,27 +76,26 @@ export default class OrganizationController {
       error: new JsonResponseError("Organization not found")
     });
     const owner = await this.authService.getOwnerFromOrganization(id);
-    if(user._id != owner) return jsonResponse({
+    console.log(user._id, owner);
+    if(!user._id!.equals(owner!)) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
     });
     await this.Organization.updateOne(
       { _id: organization._id}, 
-      { deleteDate: new Date() }
+      { $set: { deleteDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
-    const organization = await this.Organization.findOne({ 
-      _id: form.cleanedData.id
-    }) as IOrganization;
+    const organization = await this.OrganizationView.findOne(form.cleanedData) as IOrganizationView;
     if(!organization) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Organization not found")
     });
-    const isMember = await this.authService.isMember(organization._id!, request);
+    const isMember = await this.authService.isMember(organization.id!, request);
     if(!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this operation.")
@@ -92,19 +103,17 @@ export default class OrganizationController {
     ;
     return jsonResponse({
       status: 200,
-      data: await this.Organization.findOne({
-        _id: organization._id
-      })
+      data: organization
     });
   }
 
   @Get()
   async getOrganizations(request: Request): Promise<Responder> {
     const user = await this.authService.getUser(request) as IUser;
-    const organizations = await this.Organization.find({
-      members: { 
-        $in: [user._id!]
-      }
+    const organizations = await this.OrganizationView.find({
+      members: {
+        $elemMatch: { id: user._id! }
+      } 
     }).toArray();
     return jsonResponse({
       status: 200,
@@ -128,14 +137,14 @@ export default class OrganizationController {
     const { newMembers } = membersForm.cleanedData;
     const set = new Set(organization.members);
     for(let newMember of newMembers as INewMember[]) {
-      let memberUser = await this.dbService.collections.user.findOne({ email: newMember.email }) as IUser;
+      let memberUser = await this.User.findOne({ email: newMember.email }) as IUser;
       if(!memberUser) {
         const password = CodeGenerator.generateCode(8);
         await this.authService.setPassword(
           newMember as IUser, 
           password
         );
-        await this.dbService.collections.user.insertOne(newMember);
+        await this.User.insertOne(newMember as IUser);
         memberUser = newMember as IUser;
         this.mailService.sendMail(
           EEmailTemplate.newUserMemberWelcomeNote,
@@ -156,7 +165,7 @@ export default class OrganizationController {
     await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,
-      data: await this.Organization.findOne({ _id: organization._id })
+      data: await this.OrganizationView.findOne({ id: organization._id })
     });
   }
 
@@ -191,7 +200,7 @@ export default class OrganizationController {
     await this.Organization.updateOne({ _id: organization._id }, organization);
     return jsonResponse({ 
       status: 200,
-      data: await this.Organization.findOne({ _id: organization._id })
+      data: await this.OrganizationView.findOne({ id: organization._id })
     });
   }
 }

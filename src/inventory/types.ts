@@ -41,6 +41,7 @@ export interface IDirectoryLike extends IDates {
   name?: string,
   color?: string,
   items?: ObjectId[]
+  folder?: ObjectId
 }
 
 export interface IDirectoryLikeView {
@@ -51,5 +52,5 @@ export interface IDirectoryLikeView {
   name?: string,
   color?: string,
   items?: IDirectoryLike[],
-  _id?: ObjectId
+  id?: ObjectId
 }

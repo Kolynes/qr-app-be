@@ -1,6 +1,6 @@
 import { Request } from "express";
 import { EEmailTemplate, IMailService } from "../../mail/types";
-import { ECollections, EServices } from "../../types";
+import { ECollections, EServices, EViews } from "../../types";
 import CodeGenerator from "../../utils/code-generator";
 import { Controller, Post } from "../../utils/controller";
 import { useForm } from "../../utils/form";
@@ -8,9 +8,8 @@ import { jsonResponse, JsonResponseError, Responder } from "../../utils/response
 import { service } from "../../utils/services/ServiceProvider";
 import { LoginForm, RecoverAccountForm, ResetPasswordForm, SignupForm } from "../forms";
 import { IAuthService, IUser, IVerification } from "../types";
-import { IDBService } from "../../database/types";
 import { Collection } from "mongodb";
-import { collection } from "../../database";
+import { collection, view } from "../../database";
 
 @Controller()
 export default class AuthController {
@@ -20,11 +19,14 @@ export default class AuthController {
   @service(EServices.mail)
   private mailService!: IMailService;
 
-  @service(EServices.database)
-  private dbService!: IDBService;
-
   @collection(ECollections.user)
   private User!: Collection<IUser>;
+
+  @view(EViews.user)
+  private UserView!: Collection<IUser>;
+
+  @collection(ECollections.verification)
+  private Verification!: Collection<IVerification>;
 
   @Post("/login", [useForm(LoginForm)])
   async login(request: Request, form: LoginForm): Promise<Responder> {
@@ -44,7 +46,7 @@ export default class AuthController {
       });
     return jsonResponse({
       status: 200,
-      data: user,
+      data: await this.UserView.findOne({ id: user._id}!),
       headers: await this.authService.generateTokenHeader({ id: user._id })
     });
   }
@@ -62,12 +64,11 @@ export default class AuthController {
       );
       return jsonResponse({
         status: 201,
-        data: user,
+        data: await this.UserView.findOne({ id: user._id }),
         headers: await this.authService.generateTokenHeader({ id: user._id })
       });
     } catch (e) {
-      console.log(e)
-      if ((e as any).writeErrors && (e as any).writeErrors[0].err.errmsg.includes("dup key"))
+      if ((e as any).toString().includes("dup key"))
         return jsonResponse({
           status: 400,
           error: new JsonResponseError("Failed to create user", { email: ["Email already in use"] })
@@ -87,13 +88,13 @@ export default class AuthController {
       status: 404, 
       error: new JsonResponseError("This email does not belong to any account.")
     });
-    let verification = await this.dbService.collections.verification.findOne({ userId: user._id }) as IVerification;
+    let verification = await this.Verification.findOne({ userId: user._id }) as IVerification;
     if(!verification){
       verification = {
         userId: user._id, 
         code: CodeGenerator.generateCode(6).toUpperCase()
       } as IVerification;
-      await this.dbService.collections.verification.insertOne(verification);
+      await this.Verification.insertOne(verification);
     } 
     this.mailService.sendMail(
       EEmailTemplate.passwordRecoveryCode, 
@@ -111,14 +112,14 @@ export default class AuthController {
       status: 404, 
       error: new JsonResponseError("This email does not belong to any account.")
     });
-    const verification = await this.dbService.collections.verification.findOne({ code, userId: user._id });
+    const verification = await this.Verification.findOne({ code, userId: user._id });
     if(!verification) return jsonResponse({
       status: 404, 
       error: new JsonResponseError("This code is invalid.")
     });
     await this.authService.setPassword(user, newPassword);
     await this.User.updateOne({ _id: user._id }, user);
-    await this.dbService.collections.verification.deleteOne(verification._id);
+    await this.Verification.deleteOne(verification._id!);
     return jsonResponse({
       status: 200,
       headers: await this.authService.generateTokenHeader({ id: user._id })

@@ -2,9 +2,6 @@ export interface IIndexable<T = any> {
   [key: string]: T;
 }
 
-
-
-
 export enum EServices {
   auth = "auth",
   qrcode = "qrcode",
@@ -12,21 +9,6 @@ export enum EServices {
   batches = "batches",
   database = "database"
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export enum ECollections {
   user = "user",
@@ -37,7 +19,10 @@ export enum ECollections {
 }
 
 export enum EViews {
-  user = "user"
+  user = "userView",
+  batch = "batchView",
+  inventory = "inventoryView",
+  organization = "organizationView"
 }
 
 export type Type<T = any> = { new(...args: any[]): T };

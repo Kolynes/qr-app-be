@@ -1,8 +1,6 @@
 import "reflect-metadata";
 require("dotenv").config()
 import "./services";
-import "./collections";
-import "./views";
 
 import express from "express";
 import { registerController } from "./utils/controller";
@@ -20,7 +18,9 @@ import { EServices } from "./types";
   const dbService = ServiceProvider.getInstance().getService<IDBService>(EServices.database);
   try {
     await dbService.connect();
-  } catch(e) {}
+  } catch(e) {
+    console.log(e)
+  }
   const app = express();
   app.use(bodyParser.json());
   app.use(bodyParser.urlencoded({ extended: true }));
