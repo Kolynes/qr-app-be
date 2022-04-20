@@ -107,7 +107,7 @@ export default class InventoryController {
         createDate: new Date()
       } as IDirectoryLike;
       await this.Inventory.insertOne(newFolder);
-      
+
       return jsonResponse({
         status: 201,
         data: {
@@ -136,7 +136,7 @@ export default class InventoryController {
   async getRootDirectory(request: Request, form: OrganizationIdForm): Promise<Responder> {
     const { organization } = form.cleanedData;
     const result = await this.getValidOrganizationOrResponse(organization, request);
-    if(result instanceof Function) return result;
+    if (result instanceof Function) return result;
     return jsonResponse({
       status: 200,
       data: await this.InventoryView.find({
@@ -169,7 +169,7 @@ export default class InventoryController {
       error: new JsonResponseError("This is not a folder")
     })
     await this.Inventory.updateOne(
-      { _id: result.id }, 
+      { _id: result.id },
       { $set: folderUpdateForm.cleanedData }
     );
     return jsonResponse({
@@ -190,10 +190,12 @@ export default class InventoryController {
     this.Inventory.updateOne(
       { _id: result.id },
       {
-        item: {
-          ...result.item,
-          ...itemUpdateForm.cleanedData
-        } as IItem
+        $set: {
+          item: {
+            ...result.item,
+            ...itemUpdateForm.cleanedData
+          } as IItem
+        }
       }
     );
     return jsonResponse({
