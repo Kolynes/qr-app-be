@@ -122,7 +122,7 @@ export default class AuthController {
       { _id: user._id }, 
       { $set: { password: user.password } }
     );
-    await this.Verification.deleteOne(verification._id!);
+    await this.Verification.deleteOne({ _id: verification._id! });
     return jsonResponse({
       status: 200,
       headers: await this.authService.generateTokenHeader({ id: user._id })
