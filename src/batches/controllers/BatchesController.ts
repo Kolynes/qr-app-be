@@ -16,11 +16,11 @@ export default class BatchesController {
   @service(EServices.auth)
   private authService!: IAuthService;
 
-  @service(EServices.database)
-  private dbService!: IDBService;
-
   @view(EViews.batch)
   private BatchView!: Collection<IBatchView>;
+
+  @view(EViews.inventory)
+  private Inventory!: Collection<IBatch>;
 
   @collection(ECollections.batch)
   private Batch!: Collection<IBatch>;
@@ -47,7 +47,7 @@ export default class BatchesController {
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = await this.Batch.findOne({ _id: id }) as IBatch;
+    const batch = await this.BatchView.findOne({ _id: id });
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
@@ -57,12 +57,12 @@ export default class BatchesController {
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     })
-    await this.dbService.collections.inventory.updateMany(
-      { _id: { $in: batch.items.map(item => item.id) }}, 
-      { deleteDate: new Date().toISOString() }
+    await this.Inventory.updateMany(
+      { _id: { $in: batch.items.map(item => item.id!) }}, 
+      { $set: { deleteDate: new Date().toISOString() } }
     );
     await this.Batch.updateOne(
-      { _id: batch._id }, 
+      { _id: batch.id }, 
       { $set: { deleteDate: new Date().toISOString() } }
     );
     return jsonResponse({ status: 200 })

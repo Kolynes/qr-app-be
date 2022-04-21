@@ -40,7 +40,6 @@ export interface IDirectoryLike extends IDates {
   batch?: ObjectId,
   name?: string,
   color?: string,
-  items?: ObjectId[]
   folder?: ObjectId
 }
 

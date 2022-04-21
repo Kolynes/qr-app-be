@@ -77,6 +77,7 @@ export default class InventoryController {
       )
     })
     const batch = { organization } as IBatch;
+    await this.Batch.insertOne(batch);
     const items = [];
     for (let i = 0; i < numberOfItems; i++) items.push({
       folder: folder || result.rootFolder,
@@ -86,19 +87,17 @@ export default class InventoryController {
       createDate: new Date()
     } as IDirectoryLike);
     await this.Inventory.insertMany(items);
-    batch.items = items.map(item => item._id!);
     await this.Inventory.updateOne(
       { _id: parentFolderResult.id },
       {
         $set: {
           items: [
             ...parentFolderResult.items!.map(item => item.id!),
-            ...batch.items
+            ...items.map(item => item._id!)
           ]
         }
       }
     );
-    await this.Batch.insertOne(batch);
     const itemViews = await this.InventoryView.find({ id: { $in: items.map(item => item._id) } }).toArray();
     return jsonResponse({
       status: 201,
