@@ -11,7 +11,7 @@ import { Controller, Delete, Get, Patch, Post, Put } from "../../utils/controlle
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemUpdateForm } from "../forms";
+import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemsUpdateForm } from "../forms";
 import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IItem, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
@@ -216,32 +216,18 @@ export default class InventoryController {
     });
   }
 
-  @Patch("/items/:id", [useParamsForm(ObjectIDForm), useForm(ItemUpdateForm)])
-  async updateItem(request: Request, idForm: ObjectIDForm, itemUpdateForm: ItemUpdateForm): Promise<Responder> {
-    const { id } = idForm.cleanedData;
-    const result = await this.getValidDirectoryOrErrorResponse(id, request);
-    if (result instanceof Function) return result;
-    if (result.directoryType != EDirectoryType.item) return jsonResponse({
-      status: 400,
-      error: new JsonResponseError("This is not an item")
-    })
-    await this.Inventory.updateOne(
-      { _id: result.id },
-      {
-        $set: {
-          item: {
-            ...result.item,
-            ...itemUpdateForm.cleanedData.item
-          } as IItem
-        }
-      }
+  @Patch("/items", [useForm(ItemsUpdateForm)])
+  async updateItems(request: Request, itemUpdateForm: ItemsUpdateForm): Promise<Responder> {
+    const { ids, item } = itemUpdateForm.cleanedData;
+    await this.Inventory.updateMany(
+      { _id: { $in: ids } },
+      { $set: { item } }
     );
     return jsonResponse({
       status: 200,
-      data: await this.InventoryView.findOne({ id: result.id })
+      data: await this.InventoryView.find({ id: { $in: ids } }).toArray()
     });
   }
-
 
   @Put("/folders/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
   async addToFolder(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {

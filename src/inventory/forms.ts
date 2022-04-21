@@ -1,6 +1,6 @@
 import { mix } from "class-mixins";
 import { ObjectId } from "mongodb";
-import { OrganizationIdForm } from "../common/forms";
+import { ObjectIDForm, OrganizationIdForm } from "../common/forms";
 import Form, { rule, ValidationError } from "../utils/form";
 import { rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
@@ -38,17 +38,20 @@ export class ItemCreateForm extends Form {
   }
 }
 
-
-export class ItemUpdateForm extends Form {
-  blacklist: string[] = [
-    "id",
-    "organization",
-    "type",
-    "items",
-    "updateDate",
-    "createDate",
-    "deleteDate",
-  ];
+export class ItemsUpdateForm extends Form {
+  @rule("ids")
+  checkItems(ids: string[]) {
+    const idObjects = [];
+    for(let id of ids) {
+      requiredLengthRule(id, 24, 24);
+      try {
+        idObjects.push(new ObjectId(id));
+      } catch(e) {
+        throw new ValidationError((e as Object).toString());
+      }
+    }
+    this.cleanedData.ids = idObjects;
+  }
 }
 
 export class FolderUpdateForm extends Form {
