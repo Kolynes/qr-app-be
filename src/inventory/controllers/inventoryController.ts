@@ -135,7 +135,6 @@ export default class InventoryController {
         createDate: new Date()
       } as IDirectoryLike;
       await this.Inventory.insertOne(newFolder);
-      console.log(parentFolderResult.items)
       await this.Inventory.updateOne(
         { _id: parentFolderResult.id },
         {

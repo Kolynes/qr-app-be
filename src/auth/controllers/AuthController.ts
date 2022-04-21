@@ -7,7 +7,7 @@ import { useForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { LoginForm, RecoverAccountForm, ResetPasswordForm, SignupForm } from "../forms";
-import { IAuthService, IUser, IVerification } from "../types";
+import { IAuthService, IUser, IUserView, IVerification } from "../types";
 import { Collection } from "mongodb";
 import { collection, view } from "../../database";
 
@@ -23,7 +23,7 @@ export default class AuthController {
   private User!: Collection<IUser>;
 
   @view(EViews.user)
-  private UserView!: Collection<IUser>;
+  private UserView!: Collection<IUserView>;
 
   @collection(ECollections.verification)
   private Verification!: Collection<IVerification>;
@@ -118,7 +118,10 @@ export default class AuthController {
       error: new JsonResponseError("This code is invalid.")
     });
     await this.authService.setPassword(user, newPassword);
-    await this.User.updateOne({ _id: user._id }, user);
+    await this.User.updateOne(
+      { _id: user._id }, 
+      { $set: { password: user.password } }
+    );
     await this.Verification.deleteOne(verification._id!);
     return jsonResponse({
       status: 200,
