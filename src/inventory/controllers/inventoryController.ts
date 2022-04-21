@@ -227,7 +227,7 @@ export default class InventoryController {
       status: 400,
       error: new JsonResponseError("This is not an item")
     })
-    this.Inventory.updateOne(
+    await this.Inventory.updateOne(
       { _id: result.id },
       {
         $set: {
@@ -240,7 +240,7 @@ export default class InventoryController {
     );
     return jsonResponse({
       status: 200,
-      data: await this.Inventory.findOne({ _id: result.id })
+      data: await this.InventoryView.findOne({ id: result.id })
     });
   }
 
