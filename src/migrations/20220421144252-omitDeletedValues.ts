@@ -2,7 +2,6 @@ import { Db } from "mongodb";
 import { ECollections, EViews } from "../types";
 
 export const up = async (db: Db) => {
-    await db.dropCollection(EViews.inventory);
     await db.createCollection(
       EViews.inventory,
       {
@@ -28,7 +27,6 @@ export const up = async (db: Db) => {
       }
     );
   
-    await db.dropCollection(EViews.batch);
     await db.createCollection(
       EViews.batch,
       {
