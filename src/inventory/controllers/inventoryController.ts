@@ -233,7 +233,7 @@ export default class InventoryController {
         $set: {
           item: {
             ...result.item,
-            ...itemUpdateForm.cleanedData
+            ...itemUpdateForm.cleanedData.item
           } as IItem
         }
       }
