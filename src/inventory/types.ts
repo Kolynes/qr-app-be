@@ -51,6 +51,6 @@ export interface IDirectoryLikeView {
   batch?: ObjectId,
   name?: string,
   color?: string,
-  items?: IDirectoryLike[],
+  items?: IDirectoryLikeView[],
   id?: ObjectId
 }

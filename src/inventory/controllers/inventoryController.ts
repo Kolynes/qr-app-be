@@ -92,7 +92,7 @@ export default class InventoryController {
       {
         $set: {
           items: [
-            ...parentFolderResult.items!.map(item => item._id!),
+            ...parentFolderResult.items!.map(item => item.id!),
             ...batch.items
           ]
         }
@@ -136,13 +136,14 @@ export default class InventoryController {
         createDate: new Date()
       } as IDirectoryLike;
       await this.Inventory.insertOne(newFolder);
+      console.log(parentFolderResult.items)
       await this.Inventory.updateOne(
         { _id: parentFolderResult.id },
         {
           $set: {
             items: [
               newFolder._id!,
-              ...parentFolderResult.items!.map(item => item._id!),
+              ...parentFolderResult.items!.map(item => item.id!),
             ]
           }
         }
