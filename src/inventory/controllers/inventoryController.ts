@@ -11,7 +11,7 @@ import { Controller, Delete, Get, Patch, Post, Put } from "../../utils/controlle
 import { useForm, useParamsForm } from "../../utils/form";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { FolderCreateForm, FolderUpdateForm, ItemCreateForm, ItemUpdateForm } from "../forms";
+import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemUpdateForm } from "../forms";
 import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IItem, IQRService } from "../types";
 
 @Controller([AuthMiddleware])
@@ -245,57 +245,26 @@ export default class InventoryController {
   }
 
 
-  // @Put("/folders/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
-  // async addToDirectory(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
-  //   const { id } = idForm.cleanedData;
-  //   const { items } = folderItemsForm.cleanedData;
-  //   const folder = await IDirectoryLike.findOne({
-  //     where: { _id: id, directoryType: EDirectoryType.folder }
-  //   });
-  //   if (!folder) return jsonResponse({
-  //     status: 404,
-  //     error: new JsonResponseError("Folder not found")
-  //   });
-  //   for (let _id of items) {
-  //     let item = await IDirectoryLike.findOne({
-  //       where: { _id }
-  //     });
-  //     if (!item) return jsonResponse({
-  //       status: 404,
-  //       error: new JsonResponseError("Item not found", { item: _id })
-  //     });
-  //     else if (item.parent !== folder.id.toString()) {
-  //       item.parent = folder.id.toString();
-  //       item.save();
-  //     }
-  //   }
-  //   return jsonResponse({ status: 200 });
-  // }
-
-  // @Put("/folders/:id/remove", [useParamsForm(ObjectIDForm), useForm(FolderCreateForm)])
-  // async removeFromDirectory(request: Request, idForm: ObjectIDForm, folderForm: FolderCreateForm): Promise<Responder> {
-  //   const { id } = idForm.cleanedData;
-  //   const { items } = folderForm.cleanedData;
-  //   const folder = await IDirectoryLike.findOne({
-  //     where: { _id: id }
-  //   });
-  //   if (!folder) return jsonResponse({
-  //     status: 404,
-  //     error: new JsonResponseError("Folder not found")
-  //   });
-  //   for (let _id of items) {
-  //     let item = await IDirectoryLike.findOne({
-  //       where: { _id }
-  //     });
-  //     if (!item) return jsonResponse({
-  //       status: 404,
-  //       error: new JsonResponseError("Item not found", { item: _id })
-  //     });
-  //     else if (item.parent == folder.id.toString()) {
-  //       item.parent = undefined;
-  //       item.save();
-  //     }
-  //   }
-  //   return jsonResponse({ status: 200 });
-  // }
+  @Put("/folders/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
+  async addToFolder(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
+    const { id } = idForm.cleanedData;
+    const { items } = folderItemsForm.cleanedData;
+    const folder = await this.getValidDirectoryOrErrorResponse(id, request);
+    if (folder instanceof Function) return folder;
+    const idSet = new Set([
+      ...folder.items!.map(item => item.id),
+      ...items
+    ]);
+    const ids = [];
+    for(let id of idSet) ids.push(id);
+    await this.Inventory.updateOne(
+      { _id: id },
+      { $set: { items : ids } }
+    );
+    await this.Inventory.updateMany(
+      { _id: { $in: ids } },
+      { $set: { folder: id } }
+    );
+    return jsonResponse({ status: 200 });
+  }
 }
