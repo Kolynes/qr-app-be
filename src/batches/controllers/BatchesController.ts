@@ -19,7 +19,7 @@ export default class BatchesController {
   @view(EViews.batch)
   private BatchView!: Collection<IBatchView>;
 
-  @view(EViews.inventory)
+  @collection(ECollections.inventory)
   private Inventory!: Collection<IBatch>;
 
   @collection(ECollections.batch)
@@ -47,7 +47,7 @@ export default class BatchesController {
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteBatch(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const batch = await this.BatchView.findOne({ _id: id });
+    const batch = await this.BatchView.findOne({ id });
     if (!batch) return jsonResponse({
       status: 404,
       error: new JsonResponseError("batch not found")
