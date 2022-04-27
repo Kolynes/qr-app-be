@@ -33,23 +33,24 @@ export interface IItem {
 }
 
 export interface IDirectoryLike extends IDates {
-  _id?: ObjectId
-  organization: ObjectId,
-  directoryType: EDirectoryType,
-  item?: IItem,
-  batch?: ObjectId,
-  name?: string,
-  color?: string,
-  folder?: ObjectId
+  _id?: ObjectId;
+  organization: ObjectId;
+  directoryType: EDirectoryType;
+  item?: IItem;
+  batch?: ObjectId;
+  name?: string;
+  color?: string;
+  folder?: ObjectId;
 }
 
 export interface IDirectoryLikeView {
-  organization: ObjectId,
-  directoryType: EDirectoryType,
-  item?: IItem,
-  batch?: ObjectId,
-  name?: string,
-  color?: string,
-  items?: IDirectoryLikeView[],
-  id?: ObjectId
+  organization: ObjectId;
+  directoryType: EDirectoryType;
+  item?: IItem;
+  batch?: ObjectId;
+  name?: string;
+  color?: string;
+  items?: IDirectoryLikeView[];
+  id?: ObjectId;
+  
 }

@@ -56,10 +56,8 @@ export default class AuthController {
     try {
       const user = form.cleanedData as IUser;
       await this.authService.setPassword(user, form.cleanedData.password);
-      await this.User.insertOne({
-        ...user,
-        createDate: new Date()
-      });
+      user.createDate = new Date();
+      await this.User.insertOne(user);
       this.mailService.sendMail(
         EEmailTemplate.signUpNote, 
         user, 
