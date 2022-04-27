@@ -3,7 +3,7 @@ import { Collection } from "mongodb";
 import { IAuthService } from "../../auth/types";
 import { ObjectIDForm } from "../../common/forms";
 import { collection, view } from "../../database";
-import { IDBService } from "../../database/types";
+import { IDirectoryLike } from "../../inventory/types";
 import { ECollections, EServices, EViews } from "../../types";
 import { Controller, Delete, Get } from "../../utils/controller";
 import { useParamsForm } from "../../utils/form";
@@ -20,7 +20,7 @@ export default class BatchesController {
   private BatchView!: Collection<IBatchView>;
 
   @collection(ECollections.inventory)
-  private Inventory!: Collection<IBatch>;
+  private Inventory!: Collection<IDirectoryLike>;
 
   @collection(ECollections.batch)
   private Batch!: Collection<IBatch>;
