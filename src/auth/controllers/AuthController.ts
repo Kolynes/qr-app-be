@@ -56,7 +56,10 @@ export default class AuthController {
     try {
       const user = form.cleanedData as IUser;
       await this.authService.setPassword(user, form.cleanedData.password);
-      await this.User.insertOne(user);
+      await this.User.insertOne({
+        ...user,
+        createDate: new Date()
+      });
       this.mailService.sendMail(
         EEmailTemplate.signUpNote, 
         user, 
@@ -120,7 +123,7 @@ export default class AuthController {
     await this.authService.setPassword(user, newPassword);
     await this.User.updateOne(
       { _id: user._id }, 
-      { $set: { password: user.password } }
+      { $set: { password: user.password, updateDate: new Date() } }
     );
     await this.Verification.deleteOne({ _id: verification._id! });
     return jsonResponse({

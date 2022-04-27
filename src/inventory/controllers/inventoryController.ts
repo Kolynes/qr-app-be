@@ -76,7 +76,7 @@ export default class InventoryController {
         { folder: ["This is not a valid folder"] }
       )
     })
-    const batch = { organization } as IBatch;
+    const batch = { organization, createDate: new Date() } as IBatch;
     await this.Batch.insertOne(batch);
     const items = [];
     for (let i = 0; i < numberOfItems; i++) items.push({
@@ -94,7 +94,8 @@ export default class InventoryController {
           items: [
             ...parentFolderResult.items!.map(item => item.id!),
             ...items.map(item => item._id!)
-          ]
+          ],
+          updateDate: new Date()
         }
       }
     );
@@ -142,7 +143,8 @@ export default class InventoryController {
             items: [
               newFolder._id!,
               ...parentFolderResult.items!.map(item => item.id!),
-            ]
+            ],
+            updateDate: new Date()
           }
         }
       );
@@ -208,7 +210,7 @@ export default class InventoryController {
     })
     await this.Inventory.updateOne(
       { _id: result.id },
-      { $set: folderUpdateForm.cleanedData }
+      { $set: { ...folderUpdateForm.cleanedData, createDate: new Date() } }
     );
     return jsonResponse({
       status: 200,
@@ -221,7 +223,7 @@ export default class InventoryController {
     const { ids, item } = itemUpdateForm.cleanedData;
     await this.Inventory.updateMany(
       { _id: { $in: ids } },
-      { $set: { item } }
+      { $set: { item, updateDate: new Date() } }
     );
     return jsonResponse({
       status: 200,
@@ -243,11 +245,11 @@ export default class InventoryController {
     for(let id of idSet) ids.push(id);
     await this.Inventory.updateOne(
       { _id: id },
-      { $set: { items : ids } }
+      { $set: { items : ids, updateDate: new Date() } }
     );
     await this.Inventory.updateMany(
       { _id: { $in: ids } },
-      { $set: { folder: id } }
+      { $set: { folder: id, updateDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }

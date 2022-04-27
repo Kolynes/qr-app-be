@@ -59,11 +59,11 @@ export default class BatchesController {
     })
     await this.Inventory.updateMany(
       { _id: { $in: batch.items.map(item => item.id!) }}, 
-      { $set: { deleteDate: new Date().toISOString() } }
+      { $set: { deleteDate: new Date() } }
     );
     await this.Batch.updateOne(
       { _id: batch.id }, 
-      { $set: { deleteDate: new Date().toISOString() } }
+      { $set: { deleteDate: new Date() } }
     );
     return jsonResponse({ status: 200 })
   }

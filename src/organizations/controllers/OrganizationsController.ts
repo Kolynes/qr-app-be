@@ -53,7 +53,10 @@ export default class OrganizationController {
     const organization = form.cleanedData as IOrganization;
     organization.owner = user._id!;
     organization.members = [user._id!]
-    await this.Organization.insertOne(organization);
+    await this.Organization.insertOne({
+      ...organization,
+      createDate: new Date(),
+    });
     const rootFolder = await this.Inventory.insertOne({
       organization: organization._id!,
       directoryType: EDirectoryType.folder,
@@ -61,7 +64,7 @@ export default class OrganizationController {
     });
     await this.Organization.updateOne(
       { _id: organization._id },
-      { $set: { rootFolder: rootFolder.insertedId } }
+      { $set: { rootFolder: rootFolder.insertedId, updateDate: new Date() } }
     );
     return jsonResponse({
       status: 201,
@@ -147,7 +150,7 @@ export default class OrganizationController {
           newMember as IUser,
           password
         );
-        await this.User.insertOne(newMember as IUser);
+        await this.User.insertOne({ ...newMember as IUser, createDate: new Date() });
         memberUser = newMember as IUser;
         this.mailService.sendMail(
           EEmailTemplate.newUserMemberWelcomeNote,
@@ -165,7 +168,10 @@ export default class OrganizationController {
     }
     organization.members = [];
     for (let id of set) organization.members.push(id);
-    await this.Organization.updateOne({ _id: organization._id }, organization);
+    await this.Organization.updateOne(
+      { _id: organization._id }, 
+      { ...organization, updateDate: new Date() }
+    );
     return jsonResponse({
       status: 200,
       data: await this.OrganizationView.findOne({ id: organization._id })
@@ -200,7 +206,10 @@ export default class OrganizationController {
       currentSet.delete(id);
     }
     for (let id of currentSet) organization.members.push(id);
-    await this.Organization.updateOne({ _id: organization._id }, organization);
+    await this.Organization.updateOne(
+      { _id: organization._id }, 
+      { ...organization, updateDate: new Date() }
+    );
     return jsonResponse({
       status: 200,
       data: await this.OrganizationView.findOne({ id: organization._id })
