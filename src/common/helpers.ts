@@ -33,7 +33,7 @@ export default class Helpers {
     return directory;
   }
   
-  async getValidOrganizationOrResponse(id: ObjectId, request: Request): Promise<IOrganizationView | Responder> {
+  async getValidOrganizationByOwnershipOrResponse(id: ObjectId, request: Request): Promise<IOrganizationView | Responder> {
     const organization = await this.OrganizationView.findOne({ id });
     if (!organization) return jsonResponse({
       status: 404,
@@ -41,6 +41,20 @@ export default class Helpers {
     });
     const user = await this.authService.getUser(request);
     if (!user || !user._id!.equals(organization.owner)) return jsonResponse({
+      status: 403,
+      error: new JsonResponseError("You are not authorized to carry out this action")
+    });
+    return organization;
+  }
+
+  async getValidOrganizationByMembershipOrResponse(id: ObjectId, request: Request): Promise<IOrganizationView | Responder> {
+    const organization = await this.OrganizationView.findOne({ id });
+    if (!organization) return jsonResponse({
+      status: 404,
+      error: new JsonResponseError("Organization not found")
+    });
+    const isMember = await this.authService.isMember(organization.id!, request);
+    if (!isMember) return jsonResponse({
       status: 403,
       error: new JsonResponseError("You are not authorized to carry out this action")
     });

@@ -32,7 +32,7 @@ export default class InventoryController {
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(organization, request);
+    const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
     if (result instanceof Function) return result;
     const parentFolderResult = await helpers.getValidDirectoryOrErrorResponse(folder || result.rootFolder, request);
     if (parentFolderResult instanceof Function) return parentFolderResult;
@@ -83,7 +83,7 @@ export default class InventoryController {
   async createFolder(request: Request, form: FolderCreateForm): Promise<Responder> {
     try {
       const { name, folder, organization, color } = form.cleanedData;
-      const result = await helpers.getValidOrganizationOrResponse(organization, request);
+      const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
       if (result instanceof Function) return result;
       const parentFolderResult = await helpers.getValidDirectoryOrErrorResponse(folder || result.rootFolder, request);
       if (parentFolderResult instanceof Function) return parentFolderResult;
@@ -142,7 +142,7 @@ export default class InventoryController {
   @Get("/root/:organization", [useParamsForm(OrganizationIdForm)])
   async getRootDirectory(request: Request, form: OrganizationIdForm): Promise<Responder> {
     const { organization } = form.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(organization, request);
+    const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
     if (result instanceof Function) return result;
     return jsonResponse({
       status: 200,

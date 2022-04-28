@@ -77,7 +77,7 @@ export default class OrganizationController {
   @Delete("/:id", [useParamsForm(ObjectIDForm)])
   async deleteOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(id, request);
+    const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
     if (result instanceof Function) return result;
     await this.Organization.updateOne(
       { _id: result.id },
@@ -89,7 +89,7 @@ export default class OrganizationController {
   @Get("/:id", [useParamsForm(ObjectIDForm)])
   async getOrganization(request: Request, form: ObjectIDForm): Promise<Responder> {
     const { id } = form.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(id, request);
+    const result = await helpers.getValidOrganizationByMembershipOrResponse(id, request);
     if (result instanceof Function) return result;
     return jsonResponse({
       status: 200,
@@ -114,7 +114,7 @@ export default class OrganizationController {
   @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(OrganizationAddMembersForm)])
   async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationAddMembersForm): Promise<Responder> {
     const { id } = idForm.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(id, request);
+    const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
     if (result instanceof Function) return result;
     const { newMembers } = membersForm.cleanedData;
     const set = new Set(result.members.map(member => member.id));
@@ -159,7 +159,7 @@ export default class OrganizationController {
   async removeMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm) {
     const user = await this.authService.getUser(request) as IUser;
     const { id } = idForm.cleanedData;
-    const result = await helpers.getValidOrganizationOrResponse(id, request);
+    const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
     if (result instanceof Function) return result;
     const { members } = membersForm.cleanedData;
     const removeSet = new Set(members as ObjectId[]);
