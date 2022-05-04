@@ -25,3 +25,19 @@ export class OrganizationIdForm extends Form {
     }
   }
 }
+
+export class PageForm extends Form {
+  @rule("page")
+  checkPage(page: string) {
+    if(!page) return;
+    if(isNaN(parseInt(page))) throw new ValidationError("invalid page number")
+    this.cleanedData.page = parseInt(page)
+  }
+
+  @rule("size")
+  checkSize(size: string) {
+    if(!size) return;
+    if(isNaN(parseInt(size))) throw new ValidationError("invalid size")
+    this.cleanedData.size = parseInt(size)
+  }
+}

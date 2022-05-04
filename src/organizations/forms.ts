@@ -36,7 +36,6 @@ export class OrganizationAddMembersForm extends Form {
   }
 }
 
-@mix(OrganizationMembersForm)
 export class OrganizationCreateForm extends Form {
   @rule("name")
   checkName(name: string) {
