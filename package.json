@@ -5,8 +5,8 @@
    "main": "index.ts",
    "scripts": {
       "test": "npm run migrate && jest",
-      "start": "npm run migrate && cd build && node src/index.js",
-      "build": "tsc||true",
+      "start": "cd build && node src/index.js",
+      "build": "npm run migrate && tsc||true",
       "ts-jest": "ts-jest",
       "migrate:create": "sh -c 'ts-node node_modules/.bin/migrate-mongo create $0 -f migrate-mongo-config.ts' ",
       "migrate:status": "ts-node node_modules/.bin/migrate-mongo status -f migrate-mongo-config.ts ",
