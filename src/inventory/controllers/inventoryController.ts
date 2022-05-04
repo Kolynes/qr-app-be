@@ -2,12 +2,13 @@ import { Request } from "express";
 import { Collection } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IBatch } from "../../batches/types";
-import { ObjectIDForm, OrganizationIdForm } from "../../common/forms";
+import { ObjectIDForm, OrganizationIdForm, PageForm } from "../../common/forms";
 import Helpers from "../../common/helpers";
 import { collection, view } from "../../database";
 import { ECollections, EServices, EViews } from "../../types";
 import { Controller, Delete, Get, Patch, Post, Put } from "../../utils/controller";
-import { useForm, useParamsForm } from "../../utils/form";
+import { useForm, useParamsForm, useQueryForm } from "../../utils/form";
+import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
 import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemsUpdateForm } from "../forms";
@@ -47,25 +48,13 @@ export default class InventoryController {
     await this.Batch.insertOne(batch);
     const items = [];
     for (let i = 0; i < numberOfItems; i++) items.push({
-      folder: folder || result.rootFolder,
+      folder: parentFolderResult.id,
       directoryType: EDirectoryType.item,
       batch: batch._id,
       organization,
       createDate: new Date()
     } as IDirectoryLike);
     await this.Inventory.insertMany(items);
-    await this.Inventory.updateOne(
-      { _id: parentFolderResult.id },
-      {
-        $set: {
-          items: [
-            ...parentFolderResult.items!.map(item => item.id!),
-            ...items.map(item => item._id!)
-          ],
-          updateDate: new Date()
-        }
-      }
-    );
     const itemViews = await this.InventoryView.find({ id: { $in: items.map(item => item._id) } }).toArray();
     return jsonResponse({
       status: 201,
@@ -96,36 +85,46 @@ export default class InventoryController {
       })
       const newFolder = {
         name,
-        folder: folder || result.rootFolder,
+        folder: parentFolderResult.id,
         organization,
         color,
         directoryType: EDirectoryType.folder,
         createDate: new Date()
       } as IDirectoryLike;
       await this.Inventory.insertOne(newFolder);
-      await this.Inventory.updateOne(
-        { _id: parentFolderResult.id },
-        {
-          $set: {
-            items: [
-              newFolder._id!,
-              ...parentFolderResult.items!.map(item => item.id!),
-            ],
-            updateDate: new Date()
-          }
-        }
-      );
       return jsonResponse({
         status: 201,
-        data: {
-          qrCode: await this.qrCodeService.createQRCode(newFolder._id!, organization),
-          ...await this.InventoryView.findOne({ id: newFolder._id })
-        }
+        data: await this.InventoryView.findOne({ id: newFolder._id })
       });
     } catch (e) {
       console.log(e);
       return jsonResponse({ status: 400, error: new JsonResponseError((e as any).toString()) })
     }
+  }
+
+  @Get("/:organization/search", [useParamsForm(OrganizationIdForm), useQueryForm(PageForm)])
+  async search(request: Request, organizationIdForm: OrganizationIdForm, pageForm: PageForm): Promise<Responder> {
+    const { organization } = organizationIdForm.cleanedData;
+    const { page, size, query } = pageForm.cleanedData;
+    const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
+    if (result instanceof Function) return result;
+    const list = this.InventoryView.find({
+      $and: [
+        { organization },
+        {
+          $or: [
+            { name: new RegExp(`${query}`) },
+            { "item.type": new RegExp(`${query}`) },
+            { "item.tags": new RegExp(`${query}`) },
+            { "item.genetiName": new RegExp(`${query}`) },
+          ]
+        }
+      ]
+    })
+    return jsonResponse({
+      status: 200,
+      ...await paginate(list, page, size)
+    });
   }
 
   @Get("/:id", [useParamsForm(ObjectIDForm)])
@@ -139,6 +138,19 @@ export default class InventoryController {
     });
   }
 
+  @Get("/:id/list", [useParamsForm(ObjectIDForm), useQueryForm(PageForm)])
+  async listDirectory(request: Request, idForm: ObjectIDForm, pageForm: PageForm) {
+    const { id } = idForm.cleanedData;
+    const { page, size } = pageForm.cleanedData;
+    const result = await helpers.getValidDirectoryOrErrorResponse(id, request);
+    if (result instanceof Function) return result;
+    const list = this.InventoryView.find({ folder: id })
+    return jsonResponse({
+      status: 200,
+      ...await paginate(list, page, size)
+    });
+  }
+
   @Get("/root/:organization", [useParamsForm(OrganizationIdForm)])
   async getRootDirectory(request: Request, form: OrganizationIdForm): Promise<Responder> {
     const { organization } = form.cleanedData;
@@ -146,11 +158,7 @@ export default class InventoryController {
     if (result instanceof Function) return result;
     return jsonResponse({
       status: 200,
-      data: await this.InventoryView.find({
-        organization,
-        folder: result.rootFolder,
-        deleteDate: undefined
-      }).toArray() as IDirectoryLikeView[]
+      data: result.rootFolder
     });
   }
 
@@ -204,20 +212,12 @@ export default class InventoryController {
     const { items } = folderItemsForm.cleanedData;
     const folder = await helpers.getValidDirectoryOrErrorResponse(id, request);
     if (folder instanceof Function) return folder;
-    const idSet = new Set([
-      ...folder.items!.map(item => item.id),
-      ...items
-    ]);
-    const ids = [];
-    for(let id of idSet) ids.push(id);
-    await this.Inventory.updateOne(
-      { _id: id },
-      { $set: { items : ids, updateDate: new Date() } }
-    );
     await this.Inventory.updateMany(
-      { _id: { $in: ids } },
+      { _id: { $in: items } },
       { $set: { folder: id, updateDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }
+
+
 }

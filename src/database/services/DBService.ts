@@ -1,11 +1,11 @@
-import { MongoClient, Collection, Db, CollectionCreateOptions, IndexOptions } from "mongodb";
-import { ECollections, EServices, EViews, IIndexable } from "../../types";
+import { MongoClient, Collection, Db } from "mongodb";
+import { EServices, IIndexable } from "../../types";
 import Service, { serviceClass } from "../../utils/services/Service";
 import { IDBService } from "../types";
 
 @serviceClass(EServices.database)
 class DBService extends Service implements IDBService {
-  private connection!: MongoClient;
+  connection!: MongoClient;
   collections: IIndexable<Collection> = {};
   private _db!: Db;
   
@@ -21,5 +21,9 @@ class DBService extends Service implements IDBService {
       for(let collection of collections) this.collections[collection.collectionName] = collection;
     }
     return this.connection;
+  }
+
+  async disconnect() {
+    await this.connection.close()
   }
 }

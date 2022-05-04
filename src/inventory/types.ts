@@ -43,14 +43,12 @@ export interface IDirectoryLike extends IDates {
   folder?: ObjectId;
 }
 
-export interface IDirectoryLikeView {
+export interface IDirectoryLikeView extends IDates {
   organization: ObjectId;
   directoryType: EDirectoryType;
   item?: IItem;
   batch?: ObjectId;
   name?: string;
   color?: string;
-  items?: IDirectoryLikeView[];
   id?: ObjectId;
-  
 }

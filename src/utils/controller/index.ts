@@ -72,8 +72,14 @@ export function Controller(middleware: Type[] = []) {
           router[method](
             path,
             async (req: Request, res: Response) => {
-              const responder = await func(req);
-              responder(res);
+              try {
+                const responder = await func(req);
+                responder(res);
+              } catch(e) {
+                res.status(500)
+                res.send((e as any).toString())
+                console.log((e as any).toString())
+              }
             }
           );
         }

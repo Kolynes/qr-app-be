@@ -10,19 +10,22 @@ export enum EServices {
   database = "database"
 }
 
+
 export enum ECollections {
   user = "user",
   verification = "verification",
   batch = "batch",
   inventory = "inventory",
-  organization = "organization"
+  organization = "organization",
+  membership = "membership"
 }
+
 
 export enum EViews {
   user = "userView",
   batch = "batchView",
   inventory = "inventoryView",
-  organization = "organizationView"
+  organization = "organizationView",
 }
 
 export type Type<T = any> = { new(...args: any[]): T };

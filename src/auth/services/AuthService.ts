@@ -7,7 +7,7 @@ import { Request } from "express";
 import bcrypt from "bcrypt";
 import { Collection, ObjectId } from "mongodb";
 import { collection } from "../../database";
-import { IOrganization } from "../../organizations/types";
+import { IMembership, IOrganization } from "../../organizations/types";
 
 @serviceClass(EServices.auth)
 class AuthService extends Service implements IAuthService {
@@ -16,6 +16,9 @@ class AuthService extends Service implements IAuthService {
 
   @collection(ECollections.organization)
   private Organization!: Collection<IOrganization>;
+
+  @collection(ECollections.membership)
+  private Membership!: Collection<IMembership>;
 
   private getkey(): [string | Buffer, jwt.Algorithm] {
     if(process.env.PRIVATE_KEY && process.env.KEY_ALGORITHM) 
@@ -78,11 +81,10 @@ class AuthService extends Service implements IAuthService {
   }
 
   async isMember(organizationId: ObjectId, request: Request): Promise<boolean> {
-    const organization = await this.Organization.findOne(organizationId);
-    if(!organization) return false;
     const user = await this.getUser(request);
     if(!user) return false;
-    if(organization.members.includes(user._id!)) return false;
+    const membership = await this.Membership.findOne({ user: user._id, organization: organizationId });
+    if(!membership) return false;
     return true;
   }
 

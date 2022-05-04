@@ -1,9 +1,19 @@
-export function paginate(
-  list: any[], 
+import { Cursor } from "mongodb";
+
+export interface IPageInfo<T> {
+  data: T[],
+  numberOfPages: number;
+  nextPage: number;
+  previousPage: number;
+}
+
+export async function paginate<T>(
+  list: Cursor, 
   page: number = 1, 
   size: number = 100
-): [any[], number, number, number] {
-  const [skip, take, count] = [(page - 1) * size, page * size, list.length];
+): Promise<IPageInfo<T>> {
+  const skip = (page - 1) * size;
+  const count = await list.count();
   const numberOfPages = Math.ceil(count / size);
   const nextPage = page >= numberOfPages
     ? 0
@@ -12,12 +22,7 @@ export function paginate(
     ? 0
     : page - 1;
 
-  const data = list.slice(
-    skip,
-    take > list.length 
-      ? list.length 
-      : take
-  );
+  const data = await list.limit(size).skip(skip).toArray() as T[];
 
-  return [data, numberOfPages, nextPage, previousPage]
+  return {data, numberOfPages, nextPage, previousPage}
 }

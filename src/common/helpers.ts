@@ -20,7 +20,7 @@ export default class Helpers {
   private InventoryView!: Collection<IDirectoryLikeView>;
   
   async getValidDirectoryOrErrorResponse(id: ObjectId, request: Request): Promise<IDirectoryLikeView | Responder> {
-    const directory = await this.InventoryView.findOne({ id: id }) as IDirectoryLikeView;
+    const directory = await this.InventoryView.findOne({ id }) as IDirectoryLikeView;
     if (!directory) return jsonResponse({
       status: 404,
       error: new JsonResponseError("Directory not found")
