@@ -11,7 +11,7 @@ import { useForm, useParamsForm, useQueryForm } from "../../utils/form";
 import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemsUpdateForm } from "../forms";
+import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemsUpdateForm, DirectorySearchForm } from "../forms";
 import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IQRService } from "../types";
 
 const helpers = new Helpers();
@@ -102,25 +102,25 @@ export default class InventoryController {
     }
   }
 
-  @Get("/:organization/search", [useParamsForm(OrganizationIdForm), useQueryForm(PageForm)])
-  async search(request: Request, organizationIdForm: OrganizationIdForm, pageForm: PageForm): Promise<Responder> {
-    const { organization } = organizationIdForm.cleanedData;
+  @Get("/search", [useQueryForm(DirectorySearchForm), useQueryForm(PageForm)])
+  async search(request: Request, directorySearchForm: DirectorySearchForm, pageForm: PageForm): Promise<Responder> {
+    const { organization, folder } = directorySearchForm.cleanedData;
     const { page, size, query } = pageForm.cleanedData;
     const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
     if (result instanceof Function) return result;
-    const list = this.InventoryView.find({
-      $and: [
-        { organization },
-        {
-          $or: [
-            { name: new RegExp(`${query}`) },
-            { "item.type": new RegExp(`${query}`) },
-            { "item.tags": new RegExp(`${query}`) },
-            { "item.genetiName": new RegExp(`${query}`) },
-          ]
-        }
+    const queryObject = {
+      organization,
+      directoryType: EDirectoryType.item
+    }
+    if(folder) Object.assign(queryObject, { folder });
+    if(query) Object.assign(queryObject, {
+      $or: [
+        { "item.type": new RegExp(`${query || ""}`) },
+        { "item.tags": new RegExp(`${query || ""}`) },
+        { "item.genetiName": new RegExp(`${query || ""}`) },
       ]
     })
+    const list = this.InventoryView.find(queryObject);
     return jsonResponse({
       status: 200,
       ...await paginate(list, page, size)
@@ -154,11 +154,13 @@ export default class InventoryController {
   @Get("/root/:organization", [useParamsForm(OrganizationIdForm)])
   async getRootDirectory(request: Request, form: OrganizationIdForm): Promise<Responder> {
     const { organization } = form.cleanedData;
-    const result = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
-    if (result instanceof Function) return result;
+    const orgnizationResult = await helpers.getValidOrganizationByMembershipOrResponse(organization, request);
+    if (orgnizationResult instanceof Function) return orgnizationResult;
+    const directoryResult = await helpers.getValidDirectoryOrErrorResponse(orgnizationResult.rootFolder, request);
+    if (directoryResult instanceof Function) return directoryResult;
     return jsonResponse({
       status: 200,
-      data: result.rootFolder
+      data: directoryResult
     });
   }
 

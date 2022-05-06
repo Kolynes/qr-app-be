@@ -1,6 +1,6 @@
 import { mix } from "class-mixins";
 import { ObjectId } from "mongodb";
-import { ObjectIDForm, OrganizationIdForm } from "../common/forms";
+import { OrganizationIdForm } from "../common/forms";
 import Form, { rule, ValidationError } from "../utils/form";
 import { rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
@@ -75,4 +75,9 @@ export class FolderItemsForm extends Form {
     }
     this.cleanedData.items = ids;
   }
+}
+
+@mix(DirectoryLikeForm)
+export class DirectorySearchForm extends Form {
+
 }
