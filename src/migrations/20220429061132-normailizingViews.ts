@@ -12,12 +12,14 @@ export const up = async (db: Db) => {
   const orgs = await db.collection(ECollections.organization).find().toArray();
   for (let org of orgs)
     if(org.members)
+    try {
       await db.collection(ECollections.membership)
         .insertMany(
           org.members.map(
             (member: ObjectID) => ({ user: member, organization: org._id })
           )
         );
+    } catch(e) { console.log((e as any).toString()) }
   await db.collection(ECollections.organization).updateMany(
     {},
     { $unset: { members: "" } }

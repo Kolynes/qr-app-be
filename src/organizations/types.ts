@@ -12,7 +12,7 @@ export interface IOrganization extends IDates {
 export interface IOrganizationView extends IDates {
   name: string,
   owner: ObjectId,
-  rootFolder: IDirectoryLike,
+  rootFolder: ObjectId,
   id?: ObjectId
 }
 
