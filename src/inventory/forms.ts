@@ -1,9 +1,11 @@
 import { mix } from "class-mixins";
 import { ObjectId } from "mongodb";
-import { OrganizationIdForm } from "../common/forms";
+import { ObjectIDsForm, OrganizationIdForm } from "../common/forms";
+import { IIndexable } from "../types";
 import Form, { rule, ValidationError } from "../utils/form";
-import { rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
+import { notNullRule, rangeRule, requiredLengthRule, requiredRule } from "../utils/form/rules";
 
+export interface DirectoryLikeForm extends OrganizationIdForm {}
 @mix(OrganizationIdForm)
 export class DirectoryLikeForm extends Form {
   @rule("folder")
@@ -26,7 +28,6 @@ export class FolderCreateForm extends Form {
   checkName(name: string) {
     requiredRule(name);
   }
-
 }
 
 export interface ItemCreateForm extends OrganizationIdForm, DirectoryLikeForm {}
@@ -38,22 +39,6 @@ export class ItemCreateForm extends Form {
   }
 }
 
-export class ItemsUpdateForm extends Form {
-  @rule("ids")
-  checkItems(ids: string[]) {
-    const idObjects = [];
-    for(let id of ids) {
-      requiredLengthRule(id, 24, 24);
-      try {
-        idObjects.push(new ObjectId(id));
-      } catch(e) {
-        throw new ValidationError((e as Object).toString());
-      }
-    }
-    this.cleanedData.ids = idObjects;
-  }
-}
-
 export class FolderUpdateForm extends Form {
   whitelist: string[] = [
     "name",
@@ -61,23 +46,15 @@ export class FolderUpdateForm extends Form {
   ];
 }
 
-export class FolderItemsForm extends Form {
-  @rule("items")
-  checkItems(items: string[]) {
-    const ids = [];
-    for(let item of items) {
-      requiredLengthRule(item, 24, 24);
-      try {
-        ids.push(new ObjectId(item));
-      } catch(e) {
-        throw new ValidationError((e as Object).toString());
-      }
-    }
-    this.cleanedData.items = ids;
-  }
-}
-
+export interface DirectorySearchForm extends DirectoryLikeForm {}
 @mix(DirectoryLikeForm)
-export class DirectorySearchForm extends Form {
+export class DirectorySearchForm extends Form {}
 
+export interface ItemsUpdateForm extends ObjectIDsForm, DirectoryLikeForm {}
+@mix(ObjectIDsForm, DirectoryLikeForm)
+export class ItemsUpdateForm extends Form {
+  @rule("item")
+  checkItem(item: IIndexable) {
+    notNullRule(item);
+  }
 }

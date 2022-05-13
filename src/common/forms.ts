@@ -14,6 +14,22 @@ export class ObjectIDForm extends Form {
   }
 }
 
+export class ObjectIDsForm extends Form {
+  @rule("ids")
+  checkItems(ids: string[]) {
+    const idObjects = [];
+    for(let id of ids) {
+      requiredLengthRule(id, 24, 24);
+      try {
+        idObjects.push(new ObjectId(id));
+      } catch(e) {
+        throw new ValidationError((e as Object).toString());
+      }
+    }
+    this.cleanedData.ids = idObjects;
+  }
+}
+
 export class OrganizationIdForm extends Form {
   @rule("organization")
   checkOrganizationId(organization: string) {

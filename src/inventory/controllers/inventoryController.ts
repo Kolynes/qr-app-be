@@ -2,7 +2,7 @@ import { Request } from "express";
 import { Collection } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IBatch } from "../../batches/types";
-import { ObjectIDForm, OrganizationIdForm, PageForm } from "../../common/forms";
+import { ObjectIDForm, ObjectIDsForm, OrganizationIdForm, PageForm } from "../../common/forms";
 import Helpers from "../../common/helpers";
 import { collection, view } from "../../database";
 import { ECollections, EServices, EViews } from "../../types";
@@ -11,10 +11,11 @@ import { useForm, useParamsForm, useQueryForm } from "../../utils/form";
 import { paginate } from "../../utils/pagination";
 import { jsonResponse, JsonResponseError, Responder } from "../../utils/responses";
 import { service } from "../../utils/services/ServiceProvider";
-import { FolderCreateForm, FolderItemsForm, FolderUpdateForm, ItemCreateForm, ItemsUpdateForm, DirectorySearchForm } from "../forms";
+import { FolderCreateForm, FolderUpdateForm, ItemCreateForm, DirectorySearchForm, ItemsUpdateForm } from "../forms";
 import { EDirectoryType, IDirectoryLike, IDirectoryLikeView, IQRService } from "../types";
 
 const helpers = new Helpers();
+
 @Controller([AuthMiddleware])
 export default class InventoryController {
   @service(EServices.qrcode)
@@ -164,13 +165,11 @@ export default class InventoryController {
     });
   }
 
-  @Delete("/:id", [useParamsForm(ObjectIDForm)])
-  async deleteDirectory(request: Request, form: ObjectIDForm): Promise<Responder> {
-    const { id } = form.cleanedData;
-    const result = await helpers.getValidDirectoryOrErrorResponse(id, request);
-    if (result instanceof Function) return result;
+  @Delete("", [useForm(ObjectIDsForm)])
+  async deleteDirectories(request: Request, form: ObjectIDsForm): Promise<Responder> {
+    const { ids } = form.cleanedData;
     await this.Inventory.updateOne(
-      { _id: result.id },
+      { _id: { $in: ids } },
       { $set: { deleteDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
@@ -196,10 +195,14 @@ export default class InventoryController {
   }
 
   @Patch("/items", [useForm(ItemsUpdateForm)])
-  async updateItems(request: Request, itemUpdateForm: ItemsUpdateForm): Promise<Responder> {
-    const { ids, item } = itemUpdateForm.cleanedData;
-    await this.Inventory.updateMany(
-      { _id: { $in: ids } },
+  async updateItems(request: Request, form: ItemsUpdateForm): Promise<Responder> {
+    const { ids, item, folder } = form.cleanedData;
+    if(folder) await this.Inventory.updateMany(
+      { folder, directoryType: EDirectoryType.item },
+      { $set: { item, updateDate: new Date() } }
+    );
+    else await this.Inventory.updateMany(
+      { _id: { $in: ids }, directoryType: EDirectoryType.item },
       { $set: { item, updateDate: new Date() } }
     );
     return jsonResponse({
@@ -208,18 +211,16 @@ export default class InventoryController {
     });
   }
 
-  @Put("/folders/:id/add", [useParamsForm(ObjectIDForm), useForm(FolderItemsForm)])
-  async addToFolder(request: Request, idForm: ObjectIDForm, folderItemsForm: FolderItemsForm): Promise<Responder> {
+  @Put("/folders/:id/add", [useParamsForm(ObjectIDForm), useForm(ObjectIDsForm)])
+  async addToFolder(request: Request, idForm: ObjectIDForm, folderItemsForm: ObjectIDsForm): Promise<Responder> {
     const { id } = idForm.cleanedData;
-    const { items } = folderItemsForm.cleanedData;
+    const { ids } = folderItemsForm.cleanedData;
     const folder = await helpers.getValidDirectoryOrErrorResponse(id, request);
     if (folder instanceof Function) return folder;
     await this.Inventory.updateMany(
-      { _id: { $in: items } },
+      { _id: { $in: ids } },
       { $set: { folder: id, updateDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }
-
-
 }
