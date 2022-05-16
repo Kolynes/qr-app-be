@@ -40,5 +40,5 @@ export function existsInRule<T>(value: T, array: T[]) {
 }
 
 export function isArrayRule(value: any) {
-  if(value !instanceof Array) throw new ValidationError("a list is required");
+  if(value.constructor !== Array) throw new ValidationError("a list is required");
 }
