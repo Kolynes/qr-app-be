@@ -113,37 +113,27 @@ export default class OrganizationController {
   async getOrganizations(request: Request, form: PageForm): Promise<Responder> {
     const { page, size } = form.cleanedData;
     const user = await this.authService.getUser(request) as IUser;
-    const rule = {
-      $lookup: {
-        from: ECollections.membership,
-        as: "members",
-        let: { user: "$user", deleteDate: "$deleteDate" },
-        pipeline: [
-          { 
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$$user", user._id] },
-                  { $eq: ["$$deleteDate", undefined] },
-                ] 
-              }
-            }
-          },
-        ]
-      },
-    };
-    const organizations = this.OrganizationView.aggregate([
-      rule,
-      { $unset: "members" }
-    ])
-    const count = async () => {
-      const count = await this.OrganizationView.aggregate([
-        rule,
-        { $count: "count" }
-      ]).toArray()
-      return (count[0] as unknown as { count: number }).count;
-    }
-    organizations.count = count;
+    const memberships = await this.Membership.find({ user: user._id }).toArray();
+    // const rule = {
+    //   $lookup: {
+    //     from: ECollections.membership,
+    //     as: "members",
+    //     let: { user: "$user", deleteDate: "$deleteDate" },
+    //     pipeline: [
+    //       { 
+    //         $match: {
+    //           $expr: {
+    //             $and: [
+    //               { $eq: ["$$user", user._id] },
+    //               { $eq: ["$$deleteDate", undefined] },
+    //             ] 
+    //           }
+    //         }
+    //       },
+    //     ]
+    //   },
+    // };
+    const organizations = this.OrganizationView.find({ id: { $in: memberships.map(m => m.organization) } });
     return jsonResponse({
       status: 200,
       ...await paginate<IOrganizationView>(organizations, page || 1, size || 20)
