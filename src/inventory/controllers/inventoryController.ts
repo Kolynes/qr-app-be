@@ -2,7 +2,7 @@ import { Request } from "express";
 import { Collection } from "mongodb";
 import AuthMiddleware from "../../auth/middleware/AuthMiddleware";
 import { IBatch } from "../../batches/types";
-import { ObjectIDForm, ObjectIDsForm, OrganizationIdForm, PageForm } from "../../common/forms";
+import { CommaSeparatedObjectIDsForm, ObjectIDForm, ObjectIDsForm, OrganizationIdForm, PageForm } from "../../common/forms";
 import Helpers from "../../common/helpers";
 import { collection, view } from "../../database";
 import { ECollections, EServices, EViews } from "../../types";
@@ -165,8 +165,8 @@ export default class InventoryController {
     });
   }
 
-  @Delete("", [useForm(ObjectIDsForm)])
-  async deleteDirectories(request: Request, form: ObjectIDsForm): Promise<Responder> {
+  @Delete("", [useQueryForm(CommaSeparatedObjectIDsForm)])
+  async deleteDirectories(request: Request, form: CommaSeparatedObjectIDsForm): Promise<Responder> {
     const { ids } = form.cleanedData;
     await this.Inventory.updateOne(
       { _id: { $in: ids } },

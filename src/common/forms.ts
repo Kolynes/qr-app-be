@@ -31,6 +31,16 @@ export class ObjectIDsForm extends Form {
   }
 }
 
+export class CommaSeparatedObjectIDsForm extends Form {
+  @rule("ids")
+  checkItems(ids: string) {
+    const idStrings = ids.split(",");
+    const result = new ObjectIDsForm({ ids: idStrings });
+    if(!result.validate()) throw new ValidationError(result.errors.ids[0]);
+    this.cleanedData.ids = result.cleanedData.ids;
+  }
+}
+
 export class OrganizationIdForm extends Form {
   @rule("organization")
   checkOrganizationId(organization: string) {
