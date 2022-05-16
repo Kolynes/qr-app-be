@@ -1,6 +1,6 @@
 import { ObjectId } from "mongodb";
 import Form, { rule, ValidationError } from "../utils/form";
-import { requiredLengthRule } from "../utils/form/rules";
+import { isArrayRule, requiredLengthRule } from "../utils/form/rules";
 
 export class ObjectIDForm extends Form {
   @rule("id")
@@ -17,8 +17,9 @@ export class ObjectIDForm extends Form {
 export class ObjectIDsForm extends Form {
   @rule("ids")
   checkItems(ids: string[]) {
+    isArrayRule(ids);
     const idObjects = [];
-    for(let id of ids) {
+    for(let id of ids as string[]) {
       requiredLengthRule(id, 24, 24);
       try {
         idObjects.push(new ObjectId(id));

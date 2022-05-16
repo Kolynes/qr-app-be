@@ -38,3 +38,7 @@ export function existsInRule<T>(value: T, array: T[]) {
   const index = array.findIndex(e => e == value);
   if(index == -1) throw new ValidationError("this field is invalid");
 }
+
+export function isArrayRule(value: any) {
+  if(value !instanceof Array) throw new ValidationError("a list is required");
+}

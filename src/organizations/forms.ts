@@ -1,13 +1,12 @@
-import { mix } from "class-mixins";
 import { ObjectId } from "mongodb";
 import Form, { rule, ValidationError } from "../utils/form";
-import { emailRule, notNullRule, requiredLengthRule } from "../utils/form/rules";
+import { emailRule, isArrayRule, requiredLengthRule } from "../utils/form/rules";
 import { INewMember } from "./types";
 
 export class OrganizationMembersForm extends Form {
   @rule("members")
   checkMembers(members: string[]) {
-    notNullRule(members);
+    isArrayRule(members);
     const ids = [];
     if(members.length > 0) {
       for(let member of members) {
@@ -26,7 +25,7 @@ export class OrganizationMembersForm extends Form {
 export class OrganizationAddMembersForm extends Form {
   @rule("newMembers")
   checkNewMembers(newMembers: INewMember[]) {
-    notNullRule(newMembers);
+    isArrayRule(newMembers);
     for(let newMember of newMembers) {
       emailRule(newMember.email);
       newMember.email = newMember.email.trim().toLowerCase();
