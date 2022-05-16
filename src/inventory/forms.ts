@@ -50,11 +50,23 @@ export interface DirectorySearchForm extends DirectoryLikeForm {}
 @mix(DirectoryLikeForm)
 export class DirectorySearchForm extends Form {}
 
-export interface ItemsUpdateForm extends ObjectIDsForm, DirectoryLikeForm {}
-@mix(ObjectIDsForm, DirectoryLikeForm)
+export interface ItemsUpdateForm extends ObjectIDsForm {}
+@mix(ObjectIDsForm)
 export class ItemsUpdateForm extends Form {
   @rule("item")
   checkItem(item: IIndexable) {
     notNullRule(item);
+  }
+
+  @rule("folder")
+  checkFolderId(folder?: string): void {
+    if(folder) {
+      requiredLengthRule(folder, 24, 24);
+      try {
+        this.cleanedData.folder = new ObjectId(folder);
+      } catch (e) {
+        throw new ValidationError((e as Object).toString());
+      }
+    }
   }
 }
