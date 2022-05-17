@@ -58,7 +58,7 @@ export default class BatchesController {
       error: new JsonResponseError("You are not authorized to carry out this action")
     })
     await this.Inventory.updateMany(
-      { _id: { $in: batch.items.map(item => item.id!) }}, 
+      { batch: batch.id }, 
       { $set: { deleteDate: new Date() } }
     );
     await this.Batch.updateOne(

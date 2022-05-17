@@ -145,10 +145,21 @@ export default class InventoryController {
     const { page, size } = pageForm.cleanedData;
     const result = await helpers.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
-    const list = this.InventoryView.find({ folder: id })
+    const count = await this.InventoryView.find({ folder: id }).count();
+    const oldest = (await this.InventoryView.find({ folder: id }).sort("createdDate", 1).limit(1).toArray())[0];
+    const newest = (await this.InventoryView.find({ folder: id }).sort("createdDate", -1).limit(1).toArray())[0];
+    const pageData = await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id }), page, size);
+    if(!result.name) pageData.data = pageData.data.filter((item: IDirectoryLikeView) => item.directoryType == EDirectoryType.folder);
+    const data = {
+      count,
+      oldest,
+      newest,
+      list: pageData.data
+    }
     return jsonResponse({
       status: 200,
-      ...await paginate(list, page, size)
+      ...pageData,
+      data
     });
   }
 

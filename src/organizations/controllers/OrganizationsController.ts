@@ -114,25 +114,6 @@ export default class OrganizationController {
     const { page, size } = form.cleanedData;
     const user = await this.authService.getUser(request) as IUser;
     const memberships = await this.Membership.find({ user: user._id }).toArray();
-    // const rule = {
-    //   $lookup: {
-    //     from: ECollections.membership,
-    //     as: "members",
-    //     let: { user: "$user", deleteDate: "$deleteDate" },
-    //     pipeline: [
-    //       { 
-    //         $match: {
-    //           $expr: {
-    //             $and: [
-    //               { $eq: ["$$user", user._id] },
-    //               { $eq: ["$$deleteDate", undefined] },
-    //             ] 
-    //           }
-    //         }
-    //       },
-    //     ]
-    //   },
-    // };
     const organizations = this.OrganizationView.find({ id: { $in: memberships.map(m => m.organization) } });
     return jsonResponse({
       status: 200,
