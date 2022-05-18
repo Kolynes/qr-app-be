@@ -148,7 +148,9 @@ export default class InventoryController {
     const count = await this.InventoryView.find({ folder: id }).count();
     const oldest = (await this.InventoryView.find({ folder: id }).sort("createDate", 1).limit(1).toArray())[0];
     const newest = (await this.InventoryView.find({ folder: id }).sort("createDate", -1).limit(1).toArray())[0];
-    const pageData = await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id }), page, size);
+    const pageData = result.name
+      ? await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id }), page, size)
+      : await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id, directoryType: EDirectoryType.folder }), page, size)
     const { averageAge } = (await this.Inventory.aggregate([
       { $match: { folder: id } },
       { 
@@ -158,7 +160,6 @@ export default class InventoryController {
         }
       }
     ]).toArray())[0] as unknown as { averageAge: number };
-    if (!result.name) pageData.data = pageData.data.filter((item: IDirectoryLikeView) => item.directoryType == EDirectoryType.folder);
     const data = {
       averageAge: Math.round(averageAge),
       count,
