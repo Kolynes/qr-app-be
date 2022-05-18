@@ -113,8 +113,8 @@ export default class InventoryController {
       organization,
       directoryType: EDirectoryType.item
     }
-    if(folder) Object.assign(queryObject, { folder });
-    if(query) Object.assign(queryObject, {
+    if (folder) Object.assign(queryObject, { folder });
+    if (query) Object.assign(queryObject, {
       $or: [
         { "item.type": new RegExp(`${query || ""}`) },
         { "item.tags": new RegExp(`${query || ""}`) },
@@ -146,11 +146,21 @@ export default class InventoryController {
     const result = await helpers.getValidDirectoryOrErrorResponse(id, request);
     if (result instanceof Function) return result;
     const count = await this.InventoryView.find({ folder: id }).count();
-    const oldest = (await this.InventoryView.find({ folder: id }).sort("createdDate", 1).limit(1).toArray())[0];
-    const newest = (await this.InventoryView.find({ folder: id }).sort("createdDate", -1).limit(1).toArray())[0];
+    const oldest = (await this.InventoryView.find({ folder: id }).sort("createDate", 1).limit(1).toArray())[0];
+    const newest = (await this.InventoryView.find({ folder: id }).sort("createDate", -1).limit(1).toArray())[0];
     const pageData = await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id }), page, size);
-    if(!result.name) pageData.data = pageData.data.filter((item: IDirectoryLikeView) => item.directoryType == EDirectoryType.folder);
+    const { averageAge } = (await this.Inventory.aggregate([
+      { $match: { folder: id } },
+      { 
+        $group: {
+          _id: null,
+          averageAge: { $avg: { $subtract: [new Date(), "$createDate"] } } 
+        }
+      }
+    ]).toArray())[0] as unknown as { averageAge: number };
+    if (!result.name) pageData.data = pageData.data.filter((item: IDirectoryLikeView) => item.directoryType == EDirectoryType.folder);
     const data = {
+      averageAge: Math.round(averageAge),
       count,
       oldest,
       newest,
@@ -208,7 +218,7 @@ export default class InventoryController {
   @Patch("/items", [useForm(ItemsUpdateForm)])
   async updateItems(request: Request, form: ItemsUpdateForm): Promise<Responder> {
     const { ids, item, folder } = form.cleanedData;
-    if(folder) await this.Inventory.updateMany(
+    if (folder) await this.Inventory.updateMany(
       { folder, directoryType: EDirectoryType.item },
       { $set: { item, updateDate: new Date() } }
     );

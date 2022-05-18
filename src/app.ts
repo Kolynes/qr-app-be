@@ -8,7 +8,7 @@ import InventoryController from "./inventory/controllers/inventoryController";
 import BatchesController from "./batches/controllers/BatchesController";
 
 
-export const app = express();
+const app = express();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -17,3 +17,5 @@ registerController(AuthController, app, "/auth");
 registerController(OrganizationsController, app, "/organizations");
 registerController(InventoryController, app, "/inventory");
 registerController(BatchesController, app, "/batches");
+
+export default app;

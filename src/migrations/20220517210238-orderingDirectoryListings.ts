@@ -1,13 +1,33 @@
 import { Db } from "mongodb";
-import { ECollections } from "../types";
+import { ECollections, EViews } from "../types";
 
 export const up = async (db: Db) => {
-	await db.createIndex(
-		ECollections.inventory,
-		{ directoryType: 1 }
-	)
+	await db.dropCollection(EViews.inventory);
+  await db.createCollection(
+    EViews.inventory,
+    {
+      viewOn: ECollections.inventory,
+      pipeline: [
+        { $addFields: { id: "$_id" } },
+        { $project: { _id: 0 } },
+        { $match: { deleteDate: undefined } },
+				{ $sort: { directoryType: 1 } }
+      ]
+    }
+  );
 }
 
 export const down = async (db: Db) => {
-	await db.collection(ECollections.inventory).dropIndex("directoryType_1");
+	await db.dropCollection(EViews.inventory);
+  await db.createCollection(
+    EViews.inventory,
+    {
+      viewOn: ECollections.inventory,
+      pipeline: [
+        { $addFields: { id: "$_id" } },
+        { $project: { _id: 0 } },
+        { $match: { deleteDate: undefined } },
+      ]
+    }
+  );
 };

@@ -1,7 +1,7 @@
 require("dotenv").config()
 import "reflect-metadata";
 import "./services";
-import { app } from "./app";
+import app from "./app";
 import ServiceProvider from "./utils/services/ServiceProvider";
 import { IDBService } from "./database/types";
 import { EServices } from "./types";
