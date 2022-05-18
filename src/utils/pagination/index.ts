@@ -22,8 +22,6 @@ export async function paginate<T>(
     ? 0
     : page - 1;
 
-  console.log(size)
-
   const data = await list.sort("id", 1).skip(skip).limit(size).toArray() as T[];
 
   return {data, numberOfPages, nextPage, previousPage}
