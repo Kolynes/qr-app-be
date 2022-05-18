@@ -151,7 +151,7 @@ export default class InventoryController {
     const pageData = result.name
       ? await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id }), page, size)
       : await paginate<IDirectoryLikeView>(this.InventoryView.find({ folder: id, directoryType: EDirectoryType.folder }), page, size)
-    const { averageAge } = (await this.Inventory.aggregate([
+    const averageAgeResult = await this.Inventory.aggregate([
       { $match: { folder: id } },
       { 
         $group: {
@@ -159,9 +159,11 @@ export default class InventoryController {
           averageAge: { $avg: { $subtract: [new Date(), "$createDate"] } } 
         }
       }
-    ]).toArray())[0] as unknown as { averageAge: number };
+    ]).toArray() as unknown as [{ averageAge: number}];
     const data = {
-      averageAge: Math.round(averageAge),
+      averageAge: averageAgeResult.length > 0
+        ? Math.round(averageAgeResult[0].averageAge)
+        : 0,
       count,
       oldest,
       newest,

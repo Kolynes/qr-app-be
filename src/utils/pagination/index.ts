@@ -8,8 +8,8 @@ export interface IPageInfo<T> {
 }
 
 export async function paginate<T>(
-  list: Cursor, 
-  page: number = 1, 
+  list: Cursor,
+  page: number = 1,
   size: number = 100
 ): Promise<IPageInfo<T>> {
   const skip = (page - 1) * size;
@@ -22,7 +22,11 @@ export async function paginate<T>(
     ? 0
     : page - 1;
 
-  const data = await list.sort("id", 1).skip(skip).limit(size).toArray() as T[];
+  const data = await list
+    .sort("id", 1)
+    .skip(skip)
+    .limit(size)
+    .toArray() as T[];
 
-  return {data, numberOfPages, nextPage, previousPage}
+  return { data, numberOfPages, nextPage, previousPage }
 }

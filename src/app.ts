@@ -7,7 +7,6 @@ import OrganizationsController from "./organizations/controllers/OrganizationsCo
 import InventoryController from "./inventory/controllers/inventoryController";
 import BatchesController from "./batches/controllers/BatchesController";
 
-
 const app = express();
 
 app.use(bodyParser.json());
