@@ -53,7 +53,8 @@ export default class InventoryController {
       directoryType: EDirectoryType.item,
       batch: batch._id,
       organization,
-      createDate: new Date()
+      createDate: new Date(),
+      addToFolderDate: new Date()
     } as IDirectoryLike);
     await this.Inventory.insertMany(items);
     const itemViews = await this.InventoryView.find({ id: { $in: items.map(item => item._id) } }).toArray();
@@ -90,7 +91,8 @@ export default class InventoryController {
         organization,
         color,
         directoryType: EDirectoryType.folder,
-        createDate: new Date()
+        createDate: new Date(),
+        addToFolder: new Date()
       } as IDirectoryLike;
       await this.Inventory.insertOne(newFolder);
       return jsonResponse({
@@ -156,7 +158,7 @@ export default class InventoryController {
       { 
         $group: {
           _id: null,
-          averageAge: { $avg: { $subtract: [new Date(), "$createDate"] } } 
+          averageAge: { $avg: { $subtract: [new Date(), "$addToFolderDate"] } } 
         }
       }
     ]).toArray() as unknown as [{ averageAge: number}];
@@ -243,7 +245,7 @@ export default class InventoryController {
     if (folder instanceof Function) return folder;
     await this.Inventory.updateMany(
       { _id: { $in: ids } },
-      { $set: { folder: id, updateDate: new Date() } }
+      { $set: { folder: id, updateDate: new Date(), addToFolderDate: new Date() } }
     );
     return jsonResponse({ status: 200 });
   }

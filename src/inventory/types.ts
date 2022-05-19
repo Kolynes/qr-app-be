@@ -41,6 +41,7 @@ export interface IDirectoryLike extends IDates {
   name?: string;
   color?: string;
   folder?: ObjectId;
+  addToFolder?: Date;
 }
 
 export interface IDirectoryLikeView extends IDates {
@@ -50,5 +51,6 @@ export interface IDirectoryLikeView extends IDates {
   batch?: ObjectId;
   name?: string;
   color?: string;
+  addToFolder?: Date;
   id?: ObjectId;
 }
