@@ -66,10 +66,10 @@ export default class OrganizationController {
       createDate: new Date(),
     } as IOrganization;
     await this.Organization.insertOne(organization);
-    await this.Membership.insertOne({ 
-      createDate: new Date(), 
-      organization: organization._id!, 
-      user: user._id! 
+    await this.Membership.insertOne({
+      createDate: new Date(),
+      organization: organization._id!,
+      user: user._id!
     });
     const rootFolder = await this.Inventory.insertOne({
       organization: organization._id!,
@@ -126,103 +126,94 @@ export default class OrganizationController {
     const { id } = idForm.cleanedData;
     const { page, size } = pageForm.cleanedData;
     const result = await helpers.getValidOrganizationByMembershipOrResponse(id, request);
-    if(result instanceof Function) return result;
-    const query = {
-      $lookup: {
-        from: ECollections.membership,
-        as: "organizations",
-        let: { organization: "$organization", user: "$user", deleteDate: "$deleteDate" },
-        pipeline: [
-          { 
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$$organization", id] },
-                  { $eq: ["$id", "$$user"] },
-                  { $eq: ["$$deleteDate", undefined] },
-                ] 
-              }
-            }
-          },
-        ]
-      }
-    };
-    const members = this.UserView.aggregate([
-      query,
-      { $unset: "organizations" }
-    ])
+    if (result instanceof Function) return result;
+    const query = [
+      { $match: { organization: id, deleteDate: undefined } },
+      { 
+        $lookup: {
+          from: EViews.user,
+          localField: "user",
+          foreignField: "id",
+          as: "user"
+        }
+      },
+      { $unwind: "$user" },
+      { $project: { _id: 0, organization: 0 } },
+      { $project: { joinDate: "$createDate", user: 1 } }
+    ];
+    const memberships = this.Membership.aggregate(query);
     const count = async () => {
-      const count = await this.UserView.aggregate([
-        query,
+      const result = await this.Membership.aggregate([
+        ...query,
         { $count: "count" }
-      ]).toArray()
-      return (count[0] as unknown as { count: number }).count;
+      ]).toArray() as unknown as [{ count: number }];
+      console.log(result)
+      return result[0].count;
     }
-    members.count = count;
-
+    memberships.count = count;
     return jsonResponse({
-      status: 200,
-      ...await paginate<IUserView>(members, page || 1, size || 20)
-    });
+    status: 200,
+    ...await paginate<IUserView>(memberships, page || 1, size || 20)
+  });
   }
 
-  @Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(OrganizationAddMembersForm)])
-  async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationAddMembersForm): Promise<Responder> {
-    const { id } = idForm.cleanedData;
-    const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
-    if (result instanceof Function) return result;
-    const { newMembers } = membersForm.cleanedData;
-    const memberIds = [];
-    for (let newMember of newMembers as INewMember[]) {
-      let memberUser = await this.User.findOne({ email: newMember.email }) as IUser;
-      if (!memberUser) {
-        const password = CodeGenerator.generateCode(8);
-        await this.authService.setPassword(
-          newMember as IUser,
-          password
-        );
-        (newMember as IUser).createDate = new Date()
-        await this.User.insertOne(newMember as IUser);
-        memberUser = newMember as IUser;
-        this.mailService.sendMail(
-          EEmailTemplate.newUserMemberWelcomeNote,
-          { password, ...newMember },
-          newMember.email
-        ).catch(console.error);
-      }
-      memberIds.push(memberUser._id);
+@Put("/:id/add", [useParamsForm(ObjectIDForm), useForm(OrganizationAddMembersForm)])
+async addMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationAddMembersForm): Promise < Responder > {
+  const { id } = idForm.cleanedData;
+  const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
+  if(result instanceof Function) return result;
+  const { newMembers } = membersForm.cleanedData;
+  const memberIds = [];
+  for(let newMember of newMembers as INewMember[]) {
+    let memberUser = await this.User.findOne({ email: newMember.email }) as IUser;
+    if (!memberUser) {
+      const password = CodeGenerator.generateCode(8);
+      await this.authService.setPassword(
+        newMember as IUser,
+        password
+      );
+      (newMember as IUser).createDate = new Date()
+      await this.User.insertOne(newMember as IUser);
+      memberUser = newMember as IUser;
       this.mailService.sendMail(
-        EEmailTemplate.memberWelcomeNote,
-        { organizationName: result.name, firstName: memberUser.firstName },
-        memberUser.email
+        EEmailTemplate.newUserMemberWelcomeNote,
+        { password, ...newMember },
+        newMember.email
       ).catch(console.error);
     }
+    memberIds.push(memberUser._id);
+    this.mailService.sendMail(
+      EEmailTemplate.memberWelcomeNote,
+      { organizationName: result.name, firstName: memberUser.firstName },
+      memberUser.email
+    ).catch(console.error);
+  }
     await this.Membership.insertMany(
-      memberIds.map(memberId => ({ user: memberId!, organization: id, createDate: new Date }))
-    );
-    return jsonResponse({ status: 200 });
-  }
+    memberIds.map(memberId => ({ user: memberId!, organization: id, createDate: new Date }))
+  );
+  return jsonResponse({ status: 200 });
+}
 
-  @Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(OrganizationMembersForm)])
-  async removeMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm) {
-    const user = await this.authService.getUser(request) as IUser;
-    const { id } = idForm.cleanedData;
-    const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
-    if (result instanceof Function) return result;
-    const { members } = membersForm.cleanedData;
-    for (let id of members) {
-      if (id == user._id) return jsonResponse({
-        status: 400,
-        error: new JsonResponseError(
-          "Invalid parameters",
-          { members: ["the owner of an organization cannot be deleted"] }
-        )
-      });
-    }
-    await this.Membership.updateOne(
-      { user: { $in: members }, organization: id },
-      { $set: { deleteDate: new Date() } }
-    );
-    return jsonResponse({ status: 200 });
+@Put("/:id/remove", [useParamsForm(ObjectIDForm), useForm(OrganizationMembersForm)])
+async removeMembers(request: Request, idForm: ObjectIDForm, membersForm: OrganizationMembersForm) {
+  const user = await this.authService.getUser(request) as IUser;
+  const { id } = idForm.cleanedData;
+  const result = await helpers.getValidOrganizationByOwnershipOrResponse(id, request);
+  if (result instanceof Function) return result;
+  const { members } = membersForm.cleanedData;
+  for (let id of members) {
+    if (id == user._id) return jsonResponse({
+      status: 400,
+      error: new JsonResponseError(
+        "Invalid parameters",
+        { members: ["the owner of an organization cannot be deleted"] }
+      )
+    });
   }
+  await this.Membership.updateOne(
+    { user: { $in: members }, organization: id },
+    { $set: { deleteDate: new Date() } }
+  );
+  return jsonResponse({ status: 200 });
+}
 }
