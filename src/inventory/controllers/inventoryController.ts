@@ -30,7 +30,6 @@ export default class InventoryController {
   @view(EViews.inventory)
   private InventoryView!: Collection<IDirectoryLikeView>;
 
-
   @Post("/items", [useForm(ItemCreateForm)])
   async createItems(request: Request, form: ItemCreateForm): Promise<Responder> {
     const { numberOfItems, folder, organization } = form.cleanedData;
